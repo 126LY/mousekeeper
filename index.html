@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鼠仓 MouseKeeper · 我主导的产品案例</title>
+<style>
+:root{
+  --ink:#1a2332; --sub:#5a6b80; --line:#e3e8ef; --bg:#f6f8fb;
+  --brand:#2f6fed; --brand-soft:#eaf1fe; --brand-dark:#1d4fc4;
+  --warn:#c0392b; --warn-soft:#fdecea;
+  --ok:#1e8e5a; --ok-soft:#e7f6ef;
+  --amber:#b97d10; --amber-soft:#fdf3e0;
+  --card:#ffffff;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--ink); background:var(--bg); line-height:1.75; font-size:15px;
+}
+::selection{background:var(--brand-soft);}
+
+/* ========== 顶部进度条 ========== */
+#progress{position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--brand),#6fa1ff); width:0%; z-index:99; transition:width .1s linear;}
+
+/* ========== 布局 ========== */
+.layout{display:grid; grid-template-columns:230px 1fr; max-width:1180px; margin:0 auto;}
+nav{position:sticky; top:0; height:100vh; overflow-y:auto; padding:36px 20px; border-right:1px solid var(--line); background:var(--card);}
+nav .logo{font-weight:700; font-size:17px; margin-bottom:4px;}
+nav .sub{font-size:12px; color:var(--sub); margin-bottom:26px;}
+nav a{display:flex; align-items:center; gap:9px; padding:7px 11px; border-radius:8px; color:var(--sub); text-decoration:none; font-size:13.5px; margin-bottom:2px; transition:all .15s;}
+nav a .num{font-family:var(--mono); font-size:11px; font-weight:700; color:var(--sub); background:#eef2f7; border-radius:5px; padding:1px 6px; min-width:24px; text-align:center; transition:all .15s;}
+nav a:hover{background:var(--brand-soft); color:var(--brand);}
+nav a.on{background:var(--brand); color:#fff; font-weight:600;}
+nav a.on .num{background:rgba(255,255,255,.25); color:#fff;}
+
+main{padding:56px 64px 140px; min-width:0;}
+
+/* ========== 封面 ========== */
+.cover{margin-bottom:70px;}
+.cover .kicker{font-family:var(--mono); font-size:12px; font-weight:700; color:var(--brand); letter-spacing:2px; text-transform:uppercase; margin-bottom:14px;}
+.cover h1{font-size:44px; letter-spacing:-.5px; line-height:1.2; margin-bottom:14px; font-weight:800;}
+.cover h1 .accent{color:var(--brand);}
+.cover .tagline{font-size:18px; color:var(--sub); max-width:640px; margin-bottom:26px;}
+.cover .tagline b{color:var(--ink); font-weight:600;}
+.cover .badges{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:30px;}
+.badge{display:inline-flex; align-items:center; gap:6px; padding:5px 13px; border-radius:20px; font-size:12.5px; font-weight:600; background:var(--card); border:1px solid var(--line); color:var(--sub);}
+.badge .dot{width:7px; height:7px; border-radius:50%; background:var(--brand);}
+.badge.ok .dot{background:var(--ok);}
+.badge.amber .dot{background:var(--amber);}
+.cover .cta-row{display:flex; flex-wrap:wrap; gap:10px;}
+.btn{display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border-radius:10px; font-size:14px; font-weight:600; text-decoration:none; transition:all .15s; border:1.5px solid transparent;}
+.btn.primary{background:var(--brand); color:#fff;}
+.btn.primary:hover{background:var(--brand-dark); transform:translateY(-1px);}
+.btn.ghost{background:var(--card); color:var(--ink); border-color:var(--line);}
+.btn.ghost:hover{border-color:var(--brand); color:var(--brand);}
+
+/* ========== 90秒电梯演讲 ========== */
+.elevator{background:linear-gradient(135deg,#1a2332 0%,#2d3e5c 100%); color:#fff; border-radius:16px; padding:28px 32px; margin-bottom:60px; position:relative; overflow:hidden;}
+.elevator::before{content:""; position:absolute; top:-40px; right:-40px; width:180px; height:180px; border-radius:50%; background:rgba(111,161,255,.12);}
+.elevator .e-kicker{font-family:var(--mono); font-size:11.5px; font-weight:700; color:#8fb1ff; letter-spacing:2px; margin-bottom:10px;}
+.elevator p{font-size:15.5px; line-height:1.85; color:#e6ecf5; position:relative;}
+.elevator p b{color:#fff; background:rgba(111,161,255,.18); padding:1px 6px; border-radius:5px;}
+
+/* ========== 章节通用 ========== */
+section{margin-bottom:64px; scroll-margin-top:24px;}
+.sec-head{display:flex; align-items:baseline; gap:14px; margin-bottom:8px;}
+.sec-num{font-family:var(--mono); font-size:13px; font-weight:700; color:var(--brand); background:var(--brand-soft); border-radius:8px; padding:3px 10px;}
+h2{font-size:27px; letter-spacing:-.3px; font-weight:700;}
+.sec-desc{color:var(--sub); font-size:14px; margin-bottom:24px; max-width:720px;}
+h3{font-size:17px; margin:26px 0 12px; font-weight:700;}
+p{margin:10px 0;}
+p b, li b{font-weight:600; color:var(--ink);}
+ul, ol{margin:8px 0 14px 22px;}
+li{margin:5px 0;}
+
+/* ========== 卡片 ========== */
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:22px 26px; margin:14px 0;}
+.card.flush{padding:0; overflow:hidden;}
+
+/* ========== 痛点列表 ========== */
+.pain-list{display:grid; gap:10px; margin:16px 0;}
+.pain{display:flex; gap:12px; padding:14px 18px; background:var(--card); border:1px solid var(--line); border-left:3px solid var(--warn); border-radius:10px; font-size:14px;}
+.pain .icon{color:var(--warn); font-weight:700; flex-shrink:0;}
+
+/* ========== 判断 callout ========== */
+.callout{border-left:3px solid var(--brand); background:var(--brand-soft); padding:14px 18px; border-radius:0 10px 10px 0; margin:16px 0; font-size:14px;}
+.callout b{font-weight:700;}
+.callout.amber{border-color:var(--amber); background:var(--amber-soft);}
+.callout.ok{border-color:var(--ok); background:var(--ok-soft);}
+
+/* ========== 目标清单 ========== */
+.goal-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:18px 0;}
+.goal{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 20px; position:relative;}
+.goal .g-num{font-family:var(--mono); font-size:11px; font-weight:700; color:var(--brand); background:var(--brand-soft); border-radius:6px; padding:2px 8px; display:inline-block; margin-bottom:8px;}
+.goal p{font-size:13.5px; margin:0; line-height:1.65;}
+.goal p b{color:var(--brand); font-weight:700;}
+
+/* ========== 约束清单 ========== */
+.constraint-row{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0;}
+.constraint{flex:1; min-width:200px; background:var(--card); border:1px dashed var(--line); border-radius:10px; padding:12px 16px; font-size:13px;}
+.constraint .c-tag{font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--warn); background:var(--warn-soft); border-radius:5px; padding:1px 7px; display:inline-block; margin-bottom:5px;}
+
+/* ========== 决策卡片 ========== */
+.decision{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px 30px; margin:18px 0; position:relative; transition:box-shadow .2s;}
+.decision:hover{box-shadow:0 6px 24px rgba(26,35,50,.06);}
+.decision .d-head{display:flex; align-items:center; gap:12px; margin-bottom:4px; flex-wrap:wrap;}
+.decision .d-num{font-family:var(--mono); font-size:12px; font-weight:700; color:#fff; background:var(--brand); border-radius:8px; padding:4px 10px;}
+.decision h3{margin:0; font-size:19px;}
+.decision .d-sub{color:var(--sub); font-size:13px; margin-bottom:16px; font-family:var(--mono);}
+.decision .d-body{font-size:14px;}
+.decision .d-body ul{margin-left:20px;}
+.ai-map{margin-top:16px; padding:13px 18px; background:linear-gradient(90deg,#f0f5ff,#f7faff); border:1px solid #d3e0fb; border-radius:10px; font-size:13.5px;}
+.ai-map .map-tag{font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--brand); letter-spacing:1.5px; display:inline-flex; align-items:center; gap:6px; margin-bottom:5px;}
+.ai-map .map-tag::before{content:""; display:inline-block; width:6px; height:6px; background:var(--brand); border-radius:50%;}
+.ai-map p{margin:0; color:var(--ink);}
+.ai-map p b{color:var(--brand);}
+
+/* ========== 效果表格 ========== */
+table{border-collapse:collapse; width:100%; margin:16px 0; font-size:13.5px; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+th{background:#eef2f7; text-align:left; padding:11px 16px; font-weight:700; border-bottom:1px solid var(--line); font-size:13px;}
+td{padding:12px 16px; border-bottom:1px solid var(--line); vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+td .metric{font-family:var(--mono); font-weight:700; color:var(--brand);}
+td .verify{color:var(--sub); font-size:12.5px;}
+
+/* ========== AI 契合点 ========== */
+.fit-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:18px 0;}
+.fit{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px; position:relative;}
+.fit .f-num{font-family:var(--mono); font-size:24px; font-weight:800; color:var(--brand); opacity:.25; line-height:1; margin-bottom:10px;}
+.fit h4{font-size:15px; margin-bottom:8px; font-weight:700;}
+.fit p{font-size:13px; color:var(--sub); margin:0; line-height:1.7;}
+
+/* ========== 演示入口 ========== */
+.demo-box{background:linear-gradient(135deg,#1a2332,#2d3e5c); color:#fff; border-radius:16px; padding:30px 34px;}
+.demo-box h3{color:#fff; margin:0 0 6px; font-size:20px;}
+.demo-box .d-sub{color:#a3b3cc; font-size:13.5px; margin-bottom:20px;}
+.demo-links{display:grid; gap:10px;}
+.demo-link{display:flex; align-items:center; gap:14px; padding:14px 18px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:10px; text-decoration:none; color:#fff; transition:all .15s;}
+.demo-link:hover{background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.3);}
+.demo-link .dl-label{font-family:var(--mono); font-size:10.5px; font-weight:700; color:#8fb1ff; letter-spacing:1.5px; min-width:80px;}
+.demo-link .dl-url{font-family:var(--mono); font-size:13px; color:#e6ecf5; word-break:break-all;}
+.demo-link .dl-arrow{margin-left:auto; color:#8fb1ff; font-weight:700;}
+
+/* ========== 页脚 ========== */
+footer{margin-top:70px; padding-top:24px; border-top:1px solid var(--line); color:var(--sub); font-size:12.5px; text-align:center;}
+footer .f-brand{font-weight:700; color:var(--ink);}
+
+/* ========== 响应式 ========== */
+@media (max-width:920px){
+  .layout{grid-template-columns:1fr;}
+  nav{display:none;}
+  main{padding:36px 22px 100px;}
+  .cover h1{font-size:32px;}
+  .goal-grid{grid-template-columns:1fr;}
+  .fit-grid{grid-template-columns:1fr;}
+  .decision{padding:20px 22px;}
+}
+
+/* ========== 打印 ========== */
+@media print{
+  body{background:#fff; font-size:12px;}
+  #progress, nav, .cta-row, .demo-box .dl-arrow{display:none;}
+  .layout{display:block;}
+  main{padding:0;}
+  section{margin-bottom:36px; page-break-inside:avoid;}
+  .decision{page-break-inside:avoid;}
+  .cover h1{font-size:30px;}
+  a{color:var(--ink); text-decoration:none;}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<div class="layout">
+
+<!-- ========== 侧边导航 ========== -->
+<nav>
+  <div class="logo">鼠仓 MouseKeeper</div>
+  <div class="sub">我主导的产品案例</div>
+  <a href="#cover"><span class="num">00</span>封面</a>
+  <a href="#elevator"><span class="num">01</span>90 秒电梯演讲</a>
+  <a href="#background"><span class="num">02</span>背景与痛点</a>
+  <a href="#goal"><span class="num">03</span>目标与约束</a>
+  <a href="#decisions"><span class="num">04</span>四个关键决策</a>
+  <a href="#results"><span class="num">05</span>效果与硬指标</a>
+  <a href="#ai-fit"><span class="num">06</span>AI 岗位契合点</a>
+  <a href="#demo"><span class="num">07</span>演示入口</a>
+</nav>
+
+<main>
+
+<!-- ========== 00 封面 ========== -->
+<section class="cover" id="cover">
+  <div class="kicker">A PRODUCT CASE I LED · END-TO-END</div>
+  <h1>鼠仓 <span class="accent">MouseKeeper</span><br>实验小鼠管理工作站</h1>
+  <p class="tagline">把"纸质笼卡 + Excel"的混乱实验室,变成 <b>10 秒定位任意一只鼠</b> 的数字化工作站。从 PRD 到高保真原型,我独立完成了完整闭环。</p>
+  <div class="badges">
+    <span class="badge"><span class="dot"></span>PRD v0.4 评审稿</span>
+    <span class="badge ok"><span class="dot"></span>10 个 FR 模块 100% 落地</span>
+    <span class="badge"><span class="dot"></span>纯前端 · 单文件零部署</span>
+    <span class="badge amber"><span class="dot"></span>可现场演示</span>
+  </div>
+  <div class="cta-row">
+    <a class="btn primary" href="mouse-keeper-prototype.html" target="_blank">打开交互原型 ↗</a>
+    <a class="btn ghost" href="#decisions">直接看关键决策 ↓</a>
+  </div>
+</section>
+
+<!-- ========== 01 90秒电梯演讲 ========== -->
+<section id="elevator">
+  <div class="elevator">
+    <div class="e-kicker">90-SECOND ELEVATOR PITCH</div>
+    <p>这是我独立主导的产品案例:面向单 PI 课题组的实验小鼠管理工作站。实验室的真实痛点不是"缺一个系统",而是 <b>现场操作被流程阻塞</b> —— 研究生戴着手套在动物房里,没时间打开 Excel 找笼号;伦理年审时要花数天反推实际用鼠数量。</p>
+    <p style="margin-top:12px;">我在 <b>无法收集用户数据、无法搭建服务器</b> 两个硬约束下,做了四个关键决策:用纯前端 + 分享码快照替代后端同步、用全量留痕替代权限管控、用事实登记与归因分离平衡现场效率与数据准确、用状态机驱动保证全链路一致性。最终交付了 <b>PRD v0.4 + 10 个 FR 模块 100% 落地的高保真原型</b>,所有指标可现场演示自证,不依赖任何用户反馈类软数据。</p>
+  </div>
+</section>
+
+<!-- ========== 02 背景 ========== -->
+<section id="background">
+  <div class="sec-head"><span class="sec-num">02</span><h2>背景与痛点</h2></div>
+  <p class="sec-desc">为什么值得做 · 真实场景的观察,不是想象出来的需求</p>
+
+  <p>小型实验室的小鼠管理普遍依赖纸质笼卡 + Excel:研究生换笼时手抄笼号,繁育对的合笼、断乳日期记在个人备忘录里,基因型鉴定结果以文件名混乱的 PDF 散落在群里。</p>
+
+  <div class="pain-list">
+    <div class="pain"><span class="icon">✕</span><span>找不到某只鼠的父本母本 —— 谱系靠人脑记,人一走就断档</span></div>
+    <div class="pain"><span class="icon">✕</span><span>错过断乳日龄导致同笼打架 —— 提醒靠个人备忘录,漏一次就是一整窝损失</span></div>
+    <div class="pain"><span class="icon">✕</span><span>伦理年审时花数天从 Excel 反推实际用鼠数量 —— 数据散在多个文件里,口径对不上</span></div>
+    <div class="pain"><span class="icon">✕</span><span>巡查时发现死鼠,尸体要等回到办公室才能登记 —— 流程阻塞现场,生物安全风险</span></div>
+  </div>
+
+  <div class="callout">
+    <b>关键判断:</b>这不是一个"信息化"问题,而是一个 <b>现场操作被流程阻塞</b> 的问题。研究生在动物房里戴着手套,没有时间打开 Excel 找笼号 —— 所以产品形态必须是 <b>手机浏览器扫码即用</b>,而不是又一个需要登录的 PC 系统。
+  </div>
+</section>
+
+<!-- ========== 03 目标与约束 ========== -->
+<section id="goal">
+  <div class="sec-head"><span class="sec-num">03</span><h2>目标与约束</h2></div>
+  <p class="sec-desc">聚焦可观察的硬指标,而不是"提升效率"这种虚话</p>
+
+  <h3>产品目标(可观察表述)</h3>
+  <div class="goal-grid">
+    <div class="goal"><span class="g-num">G1</span><p>任意一只在养小鼠,<b>10 秒内</b>可从笼位图或扫码定位到其档案、谱系和所属实验计划</p></div>
+    <div class="goal"><span class="g-num">G2</span><p>每一窝仔鼠在断乳日龄到达前<b>自动生成提醒</b>,不出现"靠人脑记"的环节</p></div>
+    <div class="goal"><span class="g-num">G3</span><p>任意时间点,系统可按伦理编号<b>导出实际用鼠数量</b>与死亡记录,无需人工对账</p></div>
+    <div class="goal"><span class="g-num">G4</span><p>换笼、死亡登记等现场操作可在<b>手机浏览器扫码完成</b>,尸体不因流程等待而滞留笼内</p></div>
+  </div>
+
+  <h3>硬约束(产品架构必须适配的前提)</h3>
+  <div class="constraint-row">
+    <div class="constraint"><span class="c-tag">约束 1</span><br>无法收集用户数据 —— 实验室合规与数据敏感性</div>
+    <div class="constraint"><span class="c-tag">约束 2</span><br>无法搭建服务器 —— 零预算、零运维人力</div>
+    <div class="constraint"><span class="c-tag">约束 3</span><br>单实例部署、单实验室租户 —— 不做多机构权限</div>
+    <div class="constraint"><span class="c-tag">约束 4</span><br>Web 优先 —— 不开发原生 App,扫码依赖手机浏览器</div>
+  </div>
+
+  <div class="callout amber">
+    <b>产品决策:</b>把约束重构为架构 —— 没有服务器,就不依赖后端;不能收集数据,就把数据只存在用户自己的浏览器里。<b>限制不是短板,是产品形态的起点。</b>
+  </div>
+</section>
+
+<!-- ========== 04 四个关键决策 ========== -->
+<section id="decisions">
+  <div class="sec-head"><span class="sec-num">04</span><h2>四个关键决策</h2></div>
+  <p class="sec-desc">每一个决策都对应一种可迁移到 AI 产品的核心能力</p>
+
+  <!-- 决策 1 -->
+  <div class="decision">
+    <div class="d-head">
+      <span class="d-num">决策 1</span>
+      <h3>纯前端 + 分享码快照同步</h3>
+    </div>
+    <div class="d-sub">ARCHITECTURE UNDER CONSTRAINT · 硬约束下的架构选择</div>
+    <div class="d-body">
+      <p><b>问题:</b>没有服务器,多设备数据怎么同步?不能用账号体系,数据怎么备份?</p>
+      <ul>
+        <li><b>单文件 HTML 即完整应用</b> —— 整个产品是一个 .html 文件,双击即开,任何浏览器都能跑</li>
+        <li><b>数据只存在用户浏览器</b> —— localStorage 持久化,零数据外发,天然满足合规</li>
+        <li><b>分享码快照实现多设备同步</b> —— 一键导出全量数据为一段码,另一台设备粘贴即恢复,无需任何后端</li>
+        <li><b>版本化数据校验</b> —— 分享码带数据版本号,高版本码直接拦截,避免旧原型读新数据导致损坏</li>
+      </ul>
+    </div>
+    <div class="ai-map">
+      <span class="map-tag">AI 岗位映射</span>
+      <p>这就是 AI 产品里 <b>"本地优先 / BYOK / 隐私优先"</b> 的同构思维 —— 把资源限制重构为架构决策,反而成为差异化卖点。当所有人都在卷云端 SaaS 时,零部署、零数据收集反而成了最硬的信任状。</p>
+    </div>
+  </div>
+
+  <!-- 决策 2 -->
+  <div class="decision">
+    <div class="d-head">
+      <span class="d-num">决策 2</span>
+      <h3>无权限限制 + 全量操作留痕</h3>
+    </div>
+    <div class="d-sub">TRUST BY TRACEABILITY · 用可追溯性替代权限管控</div>
+    <div class="d-body">
+      <p><b>反共识判断:</b>小课题组全员互信场景下,权限管控的维护成本高于其风险收益。</p>
+      <ul>
+        <li><b>所有成员可执行全部操作</b> —— 建档、换笼、繁育、送检、终态登记、撤销,零权限阻塞</li>
+        <li><b>补偿控制:全量操作留痕</b> —— 任何操作可追溯到具体的人与时间,足以支撑内部问责与伦理审计</li>
+        <li><b>角色仅作身份标识</b> —— 用于时间线留痕与待办路由(死亡归因确认通知分配人),不用于授权</li>
+      </ul>
+    </div>
+    <div class="ai-map">
+      <span class="map-tag">AI 岗位映射</span>
+      <p>这是 AI 产品里 <b>"信任设计"</b> 的核心 —— 不是用权限堵住所有路径,而是用可追溯性让用户敢用。AI 输出同样如此:不可能拦住所有错误,但可以让每一次生成、每一次人工修改都留痕可审。</p>
+    </div>
+  </div>
+
+  <!-- 决策 3 -->
+  <div class="decision">
+    <div class="d-head">
+      <span class="d-num">决策 3</span>
+      <h3>事实登记与数据归因分离</h3>
+    </div>
+    <div class="d-sub">FACT vs ATTRIBUTION · 现场效率与数据准确的平衡</div>
+    <div class="d-body">
+      <p><b>场景:</b>巡查时发现一只死鼠,尸体不能等流程;但这只鼠属于哪个实验计划、死因是什么,现场人不一定知道。</p>
+      <ul>
+        <li><b>快速登记即时生效(事实层)</b> —— 任何人在现场 30 秒内完成登记,尸体可立即处理</li>
+        <li><b>归因 48 小时闭环(归因层)</b> —— 死因与所属计划由分配人 48h 内确认,确认前不参与统计</li>
+        <li><b>确认后自动回写</b> —— 归因确认后,伦理用量、死因统计、待办全部自动联动,无需人工对账</li>
+        <li><b>误判可撤回</b> —— 当日可撤销,全链路状态回滚(鼠状态、笼位、统计、伦理用量、待办、日志)</li>
+      </ul>
+    </div>
+    <div class="ai-map">
+      <span class="map-tag">AI 岗位映射</span>
+      <p>这就是 AI 产品里 <b>"事实 vs 生成"的信任分级</b> —— AI 输出可以先展示(事实层),但进入核心数据前必须有人确认(归因层)。<b>幻觉防控不是靠模型更准确,而是靠产品分层。</b></p>
+    </div>
+  </div>
+
+  <!-- 决策 4 -->
+  <div class="decision">
+    <div class="d-head">
+      <span class="d-num">决策 4</span>
+      <h3>状态机驱动 + 幂等性</h3>
+    </div>
+    <div class="d-sub">PREDICTABLE STATE MACHINE · 所有联动可预测、可复现</div>
+    <div class="d-body">
+      <p><b>问题:</b>小鼠从入笼到终态,涉及笼位、谱系、实验计划、伦理用量、统计、待办、日志 7 个下游。任何一处不一致,整个系统的数据可信度就崩了。</p>
+      <ul>
+        <li><b>状态机:</b>在养 → 已用于实验 / 自然死亡 / 淘汰(三态并列终态,原则上不可回退)</li>
+        <li><b>当日撤销例外:</b>仅两类场景允许回退,且必须留痕,杜绝"悄悄改数据"</li>
+        <li><b>全链路联动:</b>死亡登记 → 笼位自动清空 → 统计实时更新 → 伦理用量回写 → 待办自动闭环 → 操作日志留痕</li>
+        <li><b>幂等性:</b>同一操作重复提交不产生副作用,断网重试不会双倍扣减伦理用量</li>
+      </ul>
+    </div>
+    <div class="ai-map">
+      <span class="map-tag">AI 岗位映射</span>
+      <p>AI 产品最容易被忽视的就是 <b>"状态一致性"</b> —— 用户撤销一次生成、修改一次输入、切换一次模型,所有下游数据都要正确联动。这是工程能力,更是产品对用户的承诺:<b>系统不会在你看不见的地方悄悄出错。</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 05 效果与硬指标 ========== -->
+<section id="results">
+  <div class="sec-head"><span class="sec-num">05</span><h2>效果与硬指标</h2></div>
+  <p class="sec-desc">不依赖用户反馈类软数据,所有指标可现场演示自证</p>
+
+  <table>
+    <tr><th style="width:18%">维度</th><th style="width:42%">指标</th><th>自证方式</th></tr>
+    <tr>
+      <td><b>需求覆盖</b></td>
+      <td><span class="metric">PRD v0.4</span> · 10 个 FR 模块 <span class="metric">100% 落地</span></td>
+      <td class="verify">打开原型逐模块点验,每个 FR 对应一个可交互页面</td>
+    </tr>
+    <tr>
+      <td><b>状态一致性</b></td>
+      <td>死亡登记触发 <span class="metric">6 个下游联动</span>,无遗漏</td>
+      <td class="verify">现场登记一只死鼠,观察笼位、统计、伦理用量、待办、日志同步变化</td>
+    </tr>
+    <tr>
+      <td><b>部署成本</b></td>
+      <td><span class="metric">单文件 HTML</span> · 零依赖 · 零运维</td>
+      <td class="verify">双击文件即可在任何浏览器打开,无需 npm / 后端 / 数据库</td>
+    </tr>
+    <tr>
+      <td><b>数据可迁移</b></td>
+      <td>分享码快照实现 <span class="metric">多设备同步</span></td>
+      <td class="verify">现场导出分享码,在另一窗口粘贴导入,数据完整恢复</td>
+    </tr>
+    <tr>
+      <td><b>操作可追溯</b></td>
+      <td><span class="metric">全量操作日志</span> + 每只鼠的完整档案时间线</td>
+      <td class="verify">任意鼠档案可查看从建档到终态的每一次操作</td>
+    </tr>
+    <tr>
+      <td><b>合规支撑</b></td>
+      <td>按伦理编号 <span class="metric">一键导出</span> 实际用鼠数量与死亡记录</td>
+      <td class="verify">现场演示伦理年审的数据导出流程,无需人工对账</td>
+    </tr>
+  </table>
+
+  <div class="callout ok">
+    <b>为什么不用用户量 / 留存作为指标?</b>个人项目阶段,这两项是我无法自证的。我把结果锚定在 <b>需求覆盖率、状态一致性、部署成本</b> 这三个可现场演示的维度上 —— 面试官可以当场验证,不需要相信我的 PPT。
+  </div>
+</section>
+
+<!-- ========== 06 AI 岗位契合点 ========== -->
+<section id="ai-fit">
+  <div class="sec-head"><span class="sec-num">06</span><h2>AI 岗位契合点</h2></div>
+  <p class="sec-desc">这个案例证明的不是"我会调 AI API",而是 AI 产品岗位最稀缺的三种能力</p>
+
+  <div class="fit-grid">
+    <div class="fit">
+      <div class="f-num">01</div>
+      <h4>在约束下做架构权衡</h4>
+      <p>没有服务器、不能收集数据,依然做出完整产品。AI 产品同样如此 —— 算力成本、数据合规、模型能力边界,都是约束。能在约束里找到产品形态,比会堆功能重要得多。</p>
+    </div>
+    <div class="fit">
+      <div class="f-num">02</div>
+      <h4>把技术指标转译成产品价值</h4>
+      <p>"状态一致性"对用户来说就是"敢用、不慌";"幂等性"对用户来说就是"断网重试不会出事"。AI 产品的技术指标(token 成本、幻觉率、延迟)同样需要被转译成用户能感知的价值。</p>
+    </div>
+    <div class="fit">
+      <div class="f-num">03</div>
+      <h4>用可自证数据说话</h4>
+      <p>不依赖用户反馈、评分、留存这些软数据,所有指标可现场复现。AI 产品的效果同样需要这样的硬证据 —— 账单前后对比、固定任务集的准确率、可复现的延迟测试。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 07 演示入口 ========== -->
+<section id="demo">
+  <div class="sec-head"><span class="sec-num">07</span><h2>演示入口</h2></div>
+  <p class="sec-desc">所有产出物可现场打开,无需准备环境</p>
+
+  <div class="demo-box">
+    <h3>现场演示清单</h3>
+    <div class="d-sub">建议演示路径:笼位看板 → 快速登记死亡 → 查看联动 → 分享码导入导出</div>
+    <div class="demo-links">
+      <a class="demo-link" href="mouse-keeper-prototype.html" target="_blank">
+        <span class="dl-label">PROTOTYPE</span>
+        <span class="dl-url">mouse-keeper-prototype.html(高保真交互原型)</span>
+        <span class="dl-arrow">↗</span>
+      </a>
+      <a class="demo-link" href="mouse-lab-workstation-prd.html" target="_blank">
+        <span class="dl-label">PRD v0.4</span>
+        <span class="dl-url">mouse-lab-workstation-prd.html</span>
+        <span class="dl-arrow">↗</span>
+      </a>
+      <a class="demo-link" href="mouse-keeper-prototype.html" target="_blank">
+        <span class="dl-label">SOURCE</span>
+        <span class="dl-url">mouse-keeper-prototype.html(单文件即完整应用)</span>
+        <span class="dl-arrow">↗</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="f-brand">鼠仓 MouseKeeper · 我主导的产品案例</div>
+  <div style="margin-top:4px;">PRD v0.4 · 高保真原型 · 纯前端单文件 · 可现场演示自证</div>
+</footer>
+
+</main>
+</div>
+
+<script>
+// 顶部阅读进度条
+const bar = document.getElementById('progress');
+const navLinks = document.querySelectorAll('nav a');
+const sections = document.querySelectorAll('section[id]');
+
+function updateProgress(){
+  const h = document.documentElement;
+  const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
+  bar.style.width = (scrolled * 100) + '%';
+
+  // 当前章节高亮
+  let current = '';
+  sections.forEach(s => {
+    if (h.scrollTop >= s.offsetTop - 120) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('on', a.getAttribute('href') === '#' + current);
+  });
+}
+window.addEventListener('scroll', updateProgress, {passive:true});
+updateProgress();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1314 @@
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f6f8fb">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="鼠仓">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>鼠仓 MouseKeeper · 交互原型（依据 PRD v0.4）</title>
+<style>
+:root{--ink:#1a2332;--sub:#5a6b80;--line:#e3e8ef;--bg:#f6f8fb;--brand:#2f6fed;--brand-soft:#eaf1fe;
+--warn:#c0392b;--warn-soft:#fdecea;--ok:#1e8e5a;--ok-soft:#e7f6ef;--amber:#b97d10;--amber-soft:#fdf3e0;
+--card:#fff;--mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;font-size:14px;}
+.app{display:grid;grid-template-columns:216px 1fr;height:100vh;}
+.side{background:var(--card);border-right:1px solid var(--line);padding:20px 14px;overflow-y:auto;}
+.side .logo{font-weight:700;font-size:17px;}
+.side .ver{font-size:11.5px;color:var(--sub);margin:2px 0 18px;}
+.side a{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:13.5px;margin:2px 0;cursor:pointer;}
+.side a:hover{background:var(--brand-soft);}
+.side a.on{background:var(--brand);color:#fff;font-weight:600;}
+.side a .fr{font-size:10.5px;color:var(--sub);font-family:var(--mono);}
+.side a.on .fr{color:#dbe6ff;}
+.badge{background:var(--warn);color:#fff;font-size:10.5px;font-weight:700;border-radius:10px;padding:0 7px;line-height:17px;min-width:17px;text-align:center;}
+.side a.on .badge{background:#fff;color:var(--brand);}
+.side .foot{margin-top:22px;padding-top:14px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--sub);}
+.main{display:flex;flex-direction:column;min-width:0;}
+.topbar{background:var(--card);border-bottom:1px solid var(--line);padding:10px 28px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.topbar .tb-title{font-weight:700;font-size:15px;}
+.topbar .tb-right{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--sub);}
+.topbar select{border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12.5px;background:#fff;}
+.view{flex:1;overflow-y:auto;padding:26px 32px 90px;}
+.pagehead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+.pagehead h1{font-size:21px;}
+.frtag{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--brand);background:var(--brand-soft);border-radius:6px;padding:2px 8px;}
+.pagedesc{color:var(--sub);font-size:12.5px;margin-bottom:18px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 16px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid2>.card{margin:0;}
+.card h3{font-size:15px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.card h3 .rt{margin-left:auto;font-size:11px;color:var(--sub);font-weight:400;}
+.mut{color:var(--sub);}
+.small{font-size:12px;}
+.smaller{font-size:11.5px;}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12.5px;background:var(--card);}
+th{background:#eef2f7;text-align:left;padding:7px 10px;font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap;}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr.clickrow{cursor:pointer;} tr.clickrow:hover td{background:var(--brand-soft);}
+.tag{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 8px;border-radius:20px;white-space:nowrap;}
+.tag.p0{background:var(--brand-soft);color:var(--brand);}
+.tag.amber{background:var(--amber-soft);color:var(--amber);}
+.tag.red{background:var(--warn-soft);color:var(--warn);}
+.tag.ok{background:var(--ok-soft);color:var(--ok);}
+.tag.gray{background:#eceff3;color:var(--sub);}
+.chip{display:inline-block;font-size:11px;padding:1px 8px;border-radius:12px;background:#eef2f7;margin:1px 2px;white-space:nowrap;cursor:default;}
+.chip.m{background:var(--brand-soft);color:var(--brand);font-weight:600;}
+.chip.f{background:#fdeef6;color:#c2437f;font-weight:600;}
+.chip.id{font-family:var(--mono);cursor:pointer;}
+.chip.id:hover{outline:1.5px solid var(--brand);}
+.banner{padding:7px 12px;border-radius:8px;font-size:12px;margin:8px 0;}
+.b-amber{background:var(--amber-soft);color:var(--amber);}
+.b-red{background:var(--warn-soft);color:var(--warn);}
+.b-blue{background:var(--brand-soft);color:var(--brand);}
+.b-ok{background:var(--ok-soft);color:var(--ok);}
+.btn{display:inline-block;border:1px solid var(--brand);color:var(--brand);background:#fff;padding:5px 14px;border-radius:7px;font-size:12.5px;cursor:pointer;margin:3px 4px 3px 0;}
+.btn:hover{background:var(--brand-soft);}
+.btn.primary{background:var(--brand);color:#fff;}
+.btn.primary:hover{background:#245cc9;}
+.btn.danger{border-color:var(--warn);color:var(--warn);}
+.btn.danger:hover{background:var(--warn-soft);}
+.btn.ghost{border-color:var(--line);color:var(--sub);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.block{display:block;width:100%;text-align:center;margin-top:10px;}
+.choice{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px;}
+.choice button{border:1.5px solid var(--line);background:#fff;border-radius:16px;padding:5px 13px;font-size:12.5px;cursor:pointer;color:var(--ink);}
+.choice button.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:600;}
+.choice.danger button.on{border-color:var(--warn);background:var(--warn-soft);color:var(--warn);}
+.lbl{font-size:11.5px;color:var(--sub);font-weight:600;margin:10px 0 2px;display:block;}
+.field .val{border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:#fafbfc;font-size:12.5px;display:inline-block;}
+.radio-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;margin:5px 0;cursor:pointer;flex-wrap:wrap;}
+.radio-row.on{border-color:var(--brand);background:var(--brand-soft);}
+.radio-row.red.on{border-color:var(--warn);background:var(--warn-soft);}
+.timeline{font-size:12px;margin-top:8px;}
+.tl-item{display:flex;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:8px;height:8px;border-radius:50%;background:var(--brand);margin-top:7px;flex-shrink:0;}
+.tl-dot.amber{background:var(--amber);} .tl-dot.ok{background:var(--ok);} .tl-dot.red{background:var(--warn);} .tl-dot.gray{background:#dfe3e8;}
+.rack{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:14px 0;max-width:620px;}
+.cell{aspect-ratio:1.5;border:1.5px solid var(--line);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;cursor:pointer;transition:all .15s;background:#fff;user-select:none;}
+.cell:hover{border-color:var(--brand);}
+.cell.occ{border-color:var(--brand);background:var(--brand-soft);}
+.cell.warn-cell{border-color:var(--amber);background:var(--amber-soft);}
+.cell.sel{outline:2px solid var(--brand);outline-offset:1px;}
+.cell.pulse{border-style:dashed;border-color:var(--brand);animation:pu 1s infinite;}
+@keyframes pu{50%{background:var(--brand-soft);}}
+.cell .cid{font-weight:700;font-size:12px;}
+.cell .cnt{color:var(--sub);font-size:10.5px;}
+.bar{height:10px;background:#eef2f7;border-radius:5px;overflow:hidden;margin:4px 0;}
+.bar>i{display:block;height:10px;border-radius:5px;background:var(--brand);}
+.bar>i.amber{background:var(--amber);} .bar>i.gray{background:#8aa6c8;}
+.todo-item{border:1px solid var(--line);border-radius:10px;background:#fff;padding:11px 14px;margin:8px 0;}
+.todo-item.tone-red{border-color:var(--warn);background:var(--warn-soft);}
+.todo-item.tone-amber{border-color:var(--amber);background:var(--amber-soft);}
+.todo-item.tone-dim{opacity:.72;background:#fafbfc;}
+.todo-item .t-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;}
+.modal-mask{position:fixed;inset:0;background:rgba(26,35,50,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+.modal{background:#fff;border-radius:14px;max-width:660px;width:100%;max-height:88vh;overflow-y:auto;padding:20px 22px;box-shadow:0 16px 48px rgba(26,35,50,.2);}
+.modal .m-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.modal .m-close{cursor:pointer;color:var(--sub);font-size:18px;line-height:1;padding:2px 6px;}
+#toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 18px;border-radius:24px;font-size:12.5px;z-index:99;display:none;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:80vw;}
+#toast.show{display:block;}
+.cam{border:1.5px dashed var(--brand);border-radius:12px;background:var(--brand-soft);padding:22px 10px;text-align:center;color:var(--brand);font-size:12.5px;margin-bottom:12px;}
+.cam .big{font-size:30px;line-height:1.2;}
+.scanrow{display:flex;gap:6px;margin:8px 0;}
+.scanrow input{flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px;font-family:var(--mono);}
+.ped-node{display:inline-block;border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;margin:4px;font-size:12px;background:#fff;text-align:center;min-width:96px;}
+.ped-node.center{border-color:var(--brand);outline:2px solid var(--brand-soft);}
+.ped-node .sex{font-weight:700;} .ped-node .sex.m{color:var(--brand);} .ped-node .sex.f{color:#c2437f;}
+.ped-line{text-align:center;color:var(--sub);font-size:15px;line-height:1.1;}
+.geno{font-family:var(--mono);font-size:11.5px;padding:1px 7px;border-radius:4px;font-weight:700;}
+.geno.pos{background:var(--ok-soft);color:var(--ok);}
+.geno.neg{background:#eef2f7;color:var(--sub);}
+.geno.pend{background:var(--amber-soft);color:var(--amber);}
+.gcell{cursor:pointer;} .gcell:hover{outline:1.5px solid var(--brand);}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;font-size:12.5px;margin:8px 0;}
+.kv .k{color:var(--sub);}
+.legend{display:flex;gap:14px;font-size:11.5px;color:var(--sub);margin:6px 0;flex-wrap:wrap;}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;border:1.5px solid var(--line);vertical-align:-2px;margin-right:4px;}
+.legend .l1 i{border-color:var(--brand);background:var(--brand-soft);}
+.legend .l2 i{border-color:var(--amber);background:var(--amber-soft);}
+.racktabs{display:flex;gap:6px;margin:4px 0 2px;}
+.racktabs button{border:1.5px solid var(--line);background:#fff;border-radius:8px 8px 0 0;padding:5px 16px;font-size:12.5px;cursor:pointer;color:var(--sub);}
+.racktabs button.on{border-color:var(--brand);color:var(--brand);font-weight:700;border-bottom:2px solid var(--brand);}
+.photo-ph{border:1.5px dashed var(--line);border-radius:10px;padding:12px;text-align:center;color:var(--sub);font-size:12px;cursor:pointer;margin-top:8px;}
+.demo-note{border-left:3px solid var(--brand);background:var(--brand-soft);padding:9px 13px;border-radius:0 8px 8px 0;font-size:12px;margin:10px 0;}
+.strip{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px;}
+.strip .st{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 16px;font-size:12px;color:var(--sub);}
+.strip .st b{font-size:17px;color:var(--ink);margin-right:5px;font-family:var(--mono);}
+input[type=text],input[type=date],select.pg{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px;background:#fff;}
+/* ===== 移动端适配（桌面端样式完全不变） ===== */
+.hamb{display:none;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:17px;line-height:1;padding:6px 11px;cursor:pointer;color:var(--ink);}
+.side-mask{display:none;position:fixed;inset:0;background:rgba(26,35,50,.45);z-index:55;}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;height:auto;min-height:100vh;}
+  .side{position:fixed;left:0;top:0;bottom:0;width:min(78vw,300px);z-index:60;transform:translateX(-105%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.18);padding-bottom:calc(20px + env(safe-area-inset-bottom));overscroll-behavior:contain;}
+  body.menu-open .side{transform:translateX(0);}
+  body.menu-open{overflow:hidden;}
+  body:has(.modal-mask){overflow:hidden;}
+  .side-mask{display:block;opacity:0;pointer-events:none;transition:opacity .25s;}
+  body.menu-open .side-mask{opacity:1;pointer-events:auto;}
+  .hamb{display:inline-block;flex-shrink:0;}
+  /* 顶栏：汉堡 + 标题一行，操作人控件紧凑不换行 */
+  .topbar{padding:8px 10px;gap:8px;flex-wrap:nowrap;align-items:center;position:sticky;top:0;z-index:40;}
+  .topbar .tb-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
+  .topbar .tb-right{display:flex;flex-wrap:nowrap;gap:4px;font-size:12px;align-items:center;flex-shrink:0;}
+  .topbar .tb-right>span:first-child{display:none;}
+  .topbar .tb-right .smaller{display:none;}
+  .topbar select{max-width:120px;font-size:12px;padding:3px 6px;}
+  .topbar .btn.ghost{padding:3px 8px;font-size:13px;}
+  .view{padding:14px 12px calc(90px + env(safe-area-inset-bottom));overflow-y:visible;}
+  .pagehead h1{font-size:18px;}
+  .grid2{grid-template-columns:1fr;}
+  .grid2>.card{margin-bottom:16px;}
+  .card{padding:14px 13px;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;}
+  /* 表格：表头不换行，整体可横向滚动；字号加大提升手机可读性 */
+  table{min-width:max-content;font-size:13.5px;}
+  th{white-space:nowrap;}
+  th,td{padding:7px 9px;}
+  .tag{font-size:11px;}
+  .chip{font-size:11.5px;}
+  .strip{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;flex-wrap:nowrap;}
+  .strip .st{padding:6px 12px;font-size:11.5px;flex-shrink:0;}
+  .strip .st b{font-size:15px;}
+  .rack{grid-template-columns:repeat(4,1fr);max-width:none;gap:5px;}
+  .racktabs button{white-space:nowrap;padding:6px 12px;}
+  .kv{grid-template-columns:86px 1fr;}
+  /* 搜索行：输入框优先占满，选择器/按钮自动换行 */
+  .scanrow{flex-wrap:wrap;gap:6px;}
+  .scanrow input{flex:1 1 140px;min-width:0;}
+  .scanrow select{flex:0 0 auto;min-width:70px;}
+  .scanrow .btn{flex:0 0 auto;}
+  input,select,textarea{font-size:16px !important;}
+  input[type=checkbox]{width:20px;height:20px;}
+  .btn{padding:8px 14px;font-size:13px;}
+  .choice button{padding:8px 14px;}
+  .radio-row{padding:10px;}
+  .cell{min-height:54px;padding:4px;}
+  .cell .cid{font-size:12px;}
+  .cell .cnt{font-size:10px;text-align:center;line-height:1.2;}
+  .cell,.btn,.choice button,.radio-row,.side a,.gcell,.clickrow,.chip.id,.m-close{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .modal-mask{padding:0;align-items:flex-end;}
+  .modal{border-radius:16px 16px 0 0;max-width:none;max-height:92vh;padding:18px 16px calc(20px + env(safe-area-inset-bottom));overscroll-behavior:contain;}
+  .modal .m-head{position:sticky;top:-18px;background:#fff;padding:6px 0;margin:0 0 8px;z-index:2;}
+  #toast{bottom:calc(20px + env(safe-area-inset-bottom));max-width:92vw;}
+  .ped-node{min-width:88px;}
+  /* 档案详情页：谱系树横向滚动 */
+  .ped-tree-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+}
+/* 超小屏（≤380px，如 iPhone SE/mini 竖屏）紧凑补丁 */
+@media (max-width:380px){
+  .view{padding:12px 10px calc(90px + env(safe-area-inset-bottom));}
+  .rack{gap:4px;}
+  .cell{min-height:48px;}
+  .cell .cid{font-size:11px;}
+  .cell .cnt{font-size:9.5px;}
+  .strip .st{padding:5px 10px;}
+  .topbar select{max-width:100px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="side">
+    <div class="logo">🐭 鼠仓 MouseKeeper</div>
+    <div class="ver">交互原型 · 依据 PRD v0.4</div>
+    <a data-p="home" onclick="nav('home')">首页待办 <span class="fr">FR-6</span><span class="badge" id="todoBadge">0</span></a>
+    <a data-p="board" onclick="nav('board')">笼位看板 <span class="fr">FR-1</span></a>
+    <a data-p="scan" onclick="nav('scan')">工作台 <span class="fr">FR-3</span></a>
+    <a data-p="arch" onclick="nav('arch')">档案与谱系 <span class="fr">FR-2/4</span></a>
+    <a data-p="geno" onclick="nav('geno')">基因型鉴定 <span class="fr">FR-5</span></a>
+    <a data-p="plans" onclick="nav('plans')">实验计划 <span class="fr">FR-7</span></a>
+    <a data-p="stats" onclick="nav('stats')">存活统计 <span class="fr">FR-10</span></a>
+    <a data-p="_share" onclick="shareOpen()">分享 / 导入 <span class="fr">数据</span></a>
+    <div class="foot">无权限限制：角色仅用于<br>留痕与待办路由（PRD 3.1）</div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <button class="hamb" onclick="document.body.classList.toggle('menu-open')" aria-label="菜单">☰</button>
+      <div class="tb-title" id="tbTitle">首页待办</div>
+      <div class="tb-right">
+        <span>当前操作人</span>
+        <select id="userSel" onchange="setUser(this.value)"></select>
+        <button class="btn ghost" style="padding:2px 8px;" onclick="newUser()" title="注册新操作人">＋</button>
+        <button class="btn ghost" style="padding:2px 8px;" onclick="delUser()" title="删除当前操作人">−</button>
+        <span class="smaller">切换仅影响留痕姓名</span>
+      </div>
+    </div>
+    <div class="view" id="view"></div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="modalRoot"></div>
+<div class="side-mask" onclick="document.body.classList.remove('menu-open')"></div>
+
+<script>
+/* ================= 基础数据（锚点对齐 PRD v0.4） ================= */
+const TODAY='2026-10-18', NOWT='10:15';
+const ROWS=['A','B','C','D','E'];
+const PLANS={};
+const PLAN_OWNER={};
+const USERS=['王同学'];
+let idSeq=1; const nid=()=>'MK-2026-0'+String(idSeq++).padStart(3,'0');
+
+const M={}; // mice
+function addMouse(o){
+  M[o.id]=Object.assign({sex:'♀',strain:'C57BL/6J',birth:'2026-05-10',geno:'WT',cage:null,plan:null,
+    status:'active',source:'本室繁育',fa:null,mo:null,events:[]},o);
+  if(!M[o.id].events.length) M[o.id].events=[{t:'建档 · '+TODAY,who:'系统',text:'初始建档',cls:''}];
+}
+
+// 存活统计动态化：初始已鉴定且有谱系的鼠视为已计入 ident 基线，动态统计时不重复叠加
+const IDENT_BASE=new Set(Object.values(M).filter(m=>m.fa&&m.mo&&m.geno&&m.geno!=='待鉴定'&&m.geno!=='无效').map(m=>m.id));
+function genoClass(g){
+  if(!g||g==='待鉴定'||g==='无效')return null;
+  if(g==='WT'||g.indexOf('flox')===0||g.indexOf('CreWT')===0)return 'WT';
+  return 'HE';
+}
+function pairOffspring(p){
+  return Object.values(M).filter(m=>m.fa===p.sire&&p.dams.includes(m.mo)&&!IDENT_BASE.has(m.id)&&genoClass(m.geno));
+}
+
+const CAGES={};
+function initCage(pos,kind,pairId){ CAGES[pos]={pos,kind,pairId:pairId||null,mice:[],pups:null}; }
+Object.values(M).forEach(m=>{ if(m.cage&&CAGES[m.cage]&&m.status==='active') CAGES[m.cage].mice.push(m.id); });
+
+const PAIRS={};
+const LITTERS={};
+
+const DEATHS=[];
+let deathSeq=1;
+
+let todoSeq=1;
+const TODOS=[];
+
+const OPLOG=[];
+
+const BATCHES=[];
+const CYC={cre:['待录入','+','−','±','无效'],flox:['待录入','flox/flox','flox/+','—','无效']};
+
+/* ================= 运行时状态 ================= */
+const ui={cur:'home',user:'王同学',rack:'R1',moveFrom:null,scan:null,archId:null,archQ:'',archStatus:'全部',archStrain:'全部',
+ gsel:new Set(),wiz:null,attr:null,statStrain:'全部',statPend:false,newReg:{}};
+let litterSeq=1;
+
+/* ================= 工具 ================= */
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+function ageTxt(b){const raw=b.replace(/^约\s*/,'');const d=Math.floor((new Date(TODAY)-new Date(raw))/86400000);if(isNaN(d))return '—';return d<60?(d+' 日龄'):(d/30.4).toFixed(1)+' 月龄';}
+function sexChip(s){return s==='♂'?'<span class="chip m">♂</span>':'<span class="chip f">♀</span>';}
+function genoBadge(g){if(g==='待鉴定'||g==='无效')return '<span class="geno pend">'+g+'</span>';return '<span class="geno pos">'+g+'</span>';}
+function statusTag(m){if(m.status==='active')return '<span class="tag p0">在养</span>';
+ if(m.status==='sacrificed')return '<span class="tag gray">已用于实验</span>';
+ if(m.status==='culled')return '<span class="tag gray">淘汰</span>';
+ return '<span class="tag gray">自然死亡'+(m.deathPending?' · 初判待确认':'')+'</span>';}
+function planName(p){return p?PLANS[p].name+'（'+p+'）':'—';}
+function activeTodos(){return TODOS.filter(t=>!t.done);}
+function deathCat(r){if(r.pending)return '原因待确认';if(r.cause.indexOf('人道')===0)return '人道终点';if(r.cause.indexOf('实验终点')===0)return '实验终点';return '其他';}
+function cageHasTodo(pos){return activeTodos().some(t=>t.cage===pos);}
+function emptyPositions(){const out=[];['R1','R2'].forEach(rk=>ROWS.forEach(rw=>{for(let c=1;c<=6;c++){const p=rk+'-'+rw+c;if(!CAGES[p])out.push(p);}}));return out;}
+function firstEmpty(){return emptyPositions()[0];}
+function monthDeathCount(mo){return DEATHS.filter(r=>!r.revoked&&r.month===mo).length;}
+function usedCount(pid){return DEATHS.filter(r=>!r.revoked&&r.plan===pid).length;}
+function pendCount(pid){return DEATHS.filter(r=>!r.revoked&&r.pending&&r.plan===pid).length;}
+
+/* ================= 框架 ================= */
+const TITLES={home:'首页待办',board:'笼位看板',scan:'工作台',arch:'档案与谱系',geno:'基因型鉴定',plans:'实验计划',stats:'存活统计'};
+function nav(p){ui.cur=p;ui.attr=null;render();
+ document.querySelectorAll('.side a').forEach(a=>a.classList.toggle('on',a.dataset.p===p));
+ document.body.classList.remove('menu-open');}
+function setUser(v){ui.user=v;render();}
+function syncUserSel(){const sel=$('userSel');sel.innerHTML=USERS.map(u=>'<option '+(u===ui.user?'selected':'')+'>'+u+'</option>').join('');}
+function newUser(){ui.wiz={step:'newUser'};renderModal();}
+function userSubmit(){
+ const name=($('nuName').value||'').trim();
+ if(!name){toast('请填写姓名');return;}
+ if(USERS.includes(name)){toast('该操作人已存在');return;}
+ USERS.push(name);ui.user=name;
+ OPLOG.unshift({t:NOWT,text:'注册新操作人 '+name});
+ closeModal();render();toast('✓ 已注册并切换为 '+name);
+}
+function delUser(){
+ if(USERS.length<=1){toast('⛔ 至少保留一名操作人');return;}
+ const name=ui.user;
+ if(!confirm('删除当前操作人「'+name+'」？\n历史留痕与时间线中的姓名保留不变。'))return;
+ USERS.splice(USERS.indexOf(name),1);
+ ui.user=USERS[0];
+ OPLOG.unshift({t:NOWT,text:'删除操作人 '+name+' · 当前操作人切换为 '+ui.user});
+ render();toast('✓ 已删除 '+name+' · 当前操作人：'+ui.user);
+}
+/* ================= 分享码：全量数据导出 / 导入 ================= */
+const SHARE_VER=2;
+function shareSnapshot(){return {v:SHARE_VER,app:'MouseKeeper',at:TODAY+' '+NOWT,idSeq:idSeq,todoSeq:todoSeq,litterSeq:litterSeq,M:M,CAGES:CAGES,DEATHS:DEATHS,PLANS:PLANS,PLAN_OWNER:PLAN_OWNER,USERS:USERS,TODOS:TODOS,BATCHES:BATCHES,PAIRS:PAIRS,LITTERS:LITTERS,OPLOG:OPLOG,ui:{user:ui.user,rack:ui.rack}};}
+function shareOpen(){ui.wiz={step:'share',tab:'out'};renderModal();}
+function shareTab(t){ui.wiz.tab=t;if(t==='out'){ui.wiz.code='';}renderModal();}
+function shareGen(){
+ try{
+  ui.wiz.code=btoa(unescape(encodeURIComponent(JSON.stringify(shareSnapshot()))));
+  renderModal();toast('✓ 分享码已生成（含全部数据快照）');
+ }catch(e){toast('生成失败：'+e.message);}
+}
+function shareCopy(){
+ const el=$('shareOut');if(!el||!el.value)return;
+ el.select();try{el.setSelectionRange(0,el.value.length);}catch(e){}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.value).then(()=>toast('✓ 已复制到剪贴板'),()=>toast('复制失败，请手动全选复制'));}
+ else{try{document.execCommand('copy');toast('✓ 已复制到剪贴板');}catch(e){toast('请手动全选复制');}}
+}
+function shareImport(){
+ if(ui.wiz&&ui.wiz.step==='shareProg'){toast('导入进行中，请稍候…');return;}
+ const el=$('shareIn');
+ const raw=((el&&el.value)||'').trim();
+ if(!raw){toast('请粘贴分享码');return;}
+ let snap;
+ try{
+  const o=JSON.parse(decodeURIComponent(escape(atob(raw.replace(/\s+/g,'')))));
+  if(!o||typeof o!=='object'||!o.M||!o.CAGES||!o.DEATHS||!o.TODOS)throw new Error('bad shape');
+  if(!o.v){toast('⛔ 该分享码缺少数据版本号，可能由旧版本生成，无法安全导入');return;}
+  if(o.v>SHARE_VER){toast('⛔ 分享码数据版本 v'+o.v+' 高于当前原型支持的 v'+SHARE_VER+'\n该码可能由更新版本生成，请升级原型后再导入');return;}
+  snap=o;
+ }catch(e){toast('⛔ 分享码无效或已损坏');return;}
+ const vMsg=snap.v===SHARE_VER?'数据版本 v'+snap.v+'（与当前一致）':'数据版本 v'+snap.v+'（低于当前 v'+SHARE_VER+'，将按兼容模式导入）';
+ // 导入前先兜底导出当前快照
+ let backup='';try{backup=btoa(unescape(encodeURIComponent(JSON.stringify(shareSnapshot()))));}catch(e){}
+ if(!confirm('导入将完全覆盖当前所有数据（鼠 / 笼位 / 终态 / 计划 / 待办 / 日志），确认导入？\n\n'+vMsg+(snap.at?' · 快照生成于 '+snap.at:'')+'\n\n当前快照备份码（可先复制保存）：\n'+backup.slice(0,120)+'…\n\n点「确定」开始导入。'))return;
+ try{ shareImportRun(snap); }catch(e){ ui.wiz=null;renderModal();toast('⛔ 导入启动失败：'+e.message+'，数据未被改动'); }
+}
+function shareImportRun(snap){
+ const steps=[
+  ['校验快照结构',()=>{idSeq=snap.idSeq;todoSeq=snap.todoSeq;litterSeq=snap.litterSeq;}],
+  ['导入鼠档案（'+Object.keys(snap.M).length+' 只）',()=>{Object.keys(M).forEach(k=>delete M[k]);Object.keys(snap.M).forEach(k=>M[k]=snap.M[k]);}],
+  ['导入笼位（'+Object.keys(snap.CAGES).length+' 个）',()=>{Object.keys(CAGES).forEach(k=>delete CAGES[k]);Object.keys(snap.CAGES).forEach(k=>CAGES[k]=snap.CAGES[k]);}],
+  ['导入终态记录（'+snap.DEATHS.length+' 条）',()=>{DEATHS.length=0;snap.DEATHS.forEach(r=>DEATHS.push(r));}],
+  ['导入实验计划 / 繁育谱系',()=>{
+   Object.keys(PLANS).forEach(k=>delete PLANS[k]);Object.keys(snap.PLANS).forEach(k=>PLANS[k]=snap.PLANS[k]);
+   Object.keys(PLAN_OWNER).forEach(k=>delete PLAN_OWNER[k]);Object.keys(snap.PLAN_OWNER||{}).forEach(k=>PLAN_OWNER[k]=snap.PLAN_OWNER[k]);
+   Object.keys(PAIRS).forEach(k=>delete PAIRS[k]);Object.keys(snap.PAIRS||{}).forEach(k=>PAIRS[k]=snap.PAIRS[k]);
+   Object.keys(LITTERS).forEach(k=>delete LITTERS[k]);Object.keys(snap.LITTERS||{}).forEach(k=>LITTERS[k]=snap.LITTERS[k]);}],
+  ['导入待办 / 送检批',()=>{
+   TODOS.length=0;(snap.TODOS||[]).forEach(r=>TODOS.push(r));
+   BATCHES.length=0;(snap.BATCHES||[]).forEach(r=>BATCHES.push(r));}],
+  ['导入操作人与日志',()=>{
+   OPLOG.length=0;(snap.OPLOG||[]).forEach(r=>OPLOG.push(r));
+   USERS.length=0;(snap.USERS||['王同学']).forEach(u=>USERS.push(u));
+   ui.user=(snap.ui&&snap.ui.user&&USERS.includes(snap.ui.user))?snap.ui.user:USERS[0];
+   ui.rack=(snap.ui&&snap.ui.rack)||'R1';}],
+  ['完成',null]
+ ];
+ ui.wiz={step:'shareProg',snap:snap,steps:steps,i:0,pct:0};
+ renderModal();
+ shareImportTick();
+}
+function shareImportTick(){
+ const w=ui.wiz;if(!w||w.step!=='shareProg')return;
+ if(w.i>=w.steps.length){
+  clearTimeout(ui._shareTimer);ui._shareTimer=null;
+  ui.archId=null;ui.scan=null;ui.moveFrom=null;ui.selPos=null;ui.pool=null;ui.attrOpen=false;ui.newReg={};ui.gsel.clear();
+  IDENT_BASE.clear();
+  Object.values(M).filter(m=>m.fa&&m.mo&&m.geno&&m.geno!=='待鉴定'&&m.geno!=='无效').forEach(m=>IDENT_BASE.add(m.id));
+  OPLOG.unshift({t:NOWT,text:'导入分享码快照（鼠 '+Object.keys(M).length+' 只 · 终态 '+DEATHS.length+' 条 · 待办 '+activeTodos().length+' 未完成） · '+ui.user});
+  ui.wiz={step:'shareDone',snapAt:w.snap.at||'',snapV:w.snap.v};
+  renderModal();render();toast('✓ 快照已导入 · 全部页面已切换到导入数据');
+  return;
+ }
+ const st=w.steps[w.i];
+ w.label=st[0];
+ try{ if(st[1])st[1](); }catch(e){ clearTimeout(ui._shareTimer);ui._shareTimer=null;ui.wiz=null;renderModal();toast('⛔ 导入中断：'+st[0]+' 失败（'+e.message+'），数据可能不完整，请刷新重置');return; }
+ w.i++;w.pct=Math.round(w.i/w.steps.length*100);
+ renderModal();
+ ui._shareTimer=setTimeout(shareImportTick,140);
+}
+function render(){
+ syncUserSel();
+ const n=activeTodos().filter(t=>t.tone!=='dim').length;$('todoBadge').textContent=n;
+ $('tbTitle').textContent=TITLES[ui.cur]+' · 鼠仓 MouseKeeper';
+ $('view').innerHTML=({home:pHome,board:pBoard,scan:pScan,arch:pArch,geno:pGeno,plans:pPlans,stats:pStats}[ui.cur])();
+ if(ui._focus){const el=$(ui._focus);if(el){el.focus();try{el.setSelectionRange(el.value.length,el.value.length);}catch(e){}}ui._focus=null;}
+}
+
+/* ================= 首页待办 FR-6 ================= */
+function pHome(){
+ let h='<div class="pagehead"><h1>首页待办</h1><span class="frtag">FR-6</span></div>'
+ +'<div class="pagedesc">按到期日升序 · 规则驱动的待办（断乳 / 查栓 / 鉴定 / 超龄 / 死亡归因确认）· 处理后自动关闭</div>';
+ const alive=Object.values(M).filter(m=>m.status==='active').length;
+ const pups=Object.values(CAGES).filter(c=>c.pups).reduce((s,c)=>s+c.pups.count,0);
+ h+='<div class="strip"><div class="st"><b>'+alive+'</b>在养成鼠</div><div class="st"><b>'+pups+'</b>未断乳仔鼠</div>'
+ +'<div class="st"><b>'+Object.keys(CAGES).length+'</b>占用笼位</div><div class="st"><b>'+activeTodos().length+'</b>未完成待办</div>'
+ +'<div class="st"><b>'+DEATHS.filter(r=>!r.revoked&&r.pending).length+'</b>死因待确认</div></div>';
+ h+='<div class="demo-note">当前为空白台账：从「笼位看板 → 放入新笼」或「工作台」开始建档，待办将随业务操作（断乳 / 查栓 / 鉴定 / 超龄 / 死亡归因）自动生成。</div>';
+ activeTodos().forEach(t=>{h+=todoCard(t);});
+ h+='<div class="card"><h3>已完成 <span class="rt">当日留痕，时间线只增不改（S-1）</span></h3>';
+ const done=TODOS.filter(t=>t.done);
+ h+=done.length?done.map(t=>'<div class="todo-item tone-dim small"><b>'+t.title+'</b> — <span class="mut">已处理</span></div>').join(''):'<div class="mut small">暂无</div>';
+ h+='</div>';
+ return h;
+}
+function todoCard(t){
+ let h='<div class="todo-item tone-'+t.tone+'"><div class="t-row"><div><span class="tag '+(t.tone==='red'?'red':t.tone==='amber'?'amber':'gray')+'">'+t.type+'</span> '
+ +'<b>'+t.title+'</b> <span class="tag '+(t.due.indexOf('今天')===0||t.due.indexOf('剩')===0?'red':'gray')+'">'+t.due+'</span></div>'
+ +'<div class="smaller mut">'+t.detail+'</div></div>';
+ if(t.type==='归因'){
+  const rec=t.recRef,rid=DEATHS.indexOf(rec);
+  h+='<div><button class="btn primary" onclick="ui.attrOpen=!(ui.attrOpen);render()">去归因确认</button></div>';
+  if(ui.attrOpen&&rec&&!rec.revoked)h+=attrPanel(rec,rid);
+ }
+ if(t.type==='断乳'&&t.litter)h+='<div><button class="btn primary" onclick="todoAct(\''+t.id+'\',\'wean\')">执行断乳分笼（生成仔鼠档案并移入新笼）</button></div>';
+ if(t.type==='鉴定')h+='<div><button class="btn" onclick="nav(\'geno\')">去基因型鉴定</button><button class="btn ghost" onclick="nav(\'arch\')">查看档案</button></div>';
+ return h+'</div>';
+}
+function attrPanel(rec,rid){
+ return '<div class="card" style="margin-top:10px;background:#fbfcfe;">'
+ +'<b>死亡归因确认 · '+rec.sex+' '+rec.mid+'</b> <span class="tag amber">初判-待确认</span>'
+ +'<div class="timeline"><div class="tl-item"><span class="tl-dot amber"></span><div>发现（快速登记）：'+rec.finder+' · '+rec.time+' · '+rec.scene+' · 初判「'+rec.initial+'」</div></div>'
+ +'<div class="tl-item"><span class="tl-dot gray"></span><div class="mut">分配背景：2026-09-30 由'+(rec.plan?PLAN_OWNER[rec.plan]:'李同学')+'分配至'+(rec.plan?'计划「'+PLANS[rec.plan].name+'」':'PI 直接管理')+'</div></div></div>'
+ +'<span class="lbl">确认正式死因（实验语义枚举）</span>'
+ +['人道终点-发病','实验操作相关','环境/管理相关','其他（备注必填）'].map(c=>'<div class="radio-row red '+(ui.newReg['f'+rec.mid]===c?'on':'')+'" onclick="ui.newReg[\'f'+rec.mid+'\']=\''+c+'\';render()">'+c+'</div>').join('')
+ +'<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">'
+ +'<button class="btn danger" onclick="doAttr('+rid+')" '+(ui.newReg['f'+rec.mid]?'':'disabled')+'>提交归因确认</button>'
+ +'<button class="btn ghost" onclick="undoDeath('+rid+')">疑似误判？当日撤销本次登记</button></div>'
+ +'<div class="small mut" style="margin-top:8px;">超时规则：24h 再次提醒责任人 → 48h 升级至 PI。提交后时间线追加第二段（归因确认人），只增不改。</div></div>';
+}
+function doAttr(rid){
+ const rec=DEATHS[rid];if(!rec||rec.revoked)return;
+ rec.pending=false;rec.cause=ui.newReg['f'+rec.mid]||'人道终点-发病';rec.confirmer=ui.user;
+ TODOS.forEach(t=>{if(t.recRef===rec)t.done=true;});
+ const m=M[rec.mid];if(m){m.deathPending=false;m.events.push({t:TODAY+' '+NOWT,who:ui.user,text:'归因确认 · 正式死因「'+rec.cause+'」',cls:'red'});}
+ OPLOG.unshift({t:NOWT,text:'死亡归因确认 '+rec.mid+' →「'+rec.cause+'」· '+ui.user});
+ ui.attrOpen=false;render();toast('✓ 归因已确认 · 用量报表中该记录转为正式死因');
+}
+
+/* 归因确认 / 撤销（操作死亡记录） */
+function undoDeath(rid){
+ const rec=DEATHS[rid];
+ if(!rec||rec.revoked){toast('该记录已撤销或不可撤销');return;}
+ if(!rec.revocable){toast('⛔ 该记录不可撤销（仅快速登记/已用于实验可当日撤销）');return;}
+ if(rec.pending===false&&rec.confirmer){toast('⛔ 归因已确认，不可撤销，请走「死因修正」');return;}
+ rec.revoked=true;
+ const m=M[rec.mid];
+ if(m){m.status='active';m.deathPending=false;m.plan=rec.plan||m.plan;
+  let back=rec.cage&&CAGES[rec.cage]?rec.cage:firstEmpty();
+  if(!CAGES[back])CAGES[back]={pos:back,kind:'普通',pairId:null,mice:[],pups:null};
+  m.cage=back;CAGES[back].mice.push(m.id);
+  m.events.push({t:TODAY+' '+NOWT,who:ui.user,text:'撤销死亡登记（误判复活）· 恢复在养 · 入笼 '+back+' · 时间线保留「登记→撤销」完整记录',cls:'ok'});}
+ if(rec.plan)PLANS[rec.plan].used=Math.max(0,PLANS[rec.plan].used-1);
+ TODOS.forEach(t=>{if(t.recRef===rec)t.done=true;});
+ OPLOG.unshift({t:NOWT,text:'撤销死亡登记 '+rec.mid+'（当日撤销 · 留痕）· '+ui.user});
+ ui.attrOpen=false;if(ui.wiz)ui.wiz=null;renderModal();render();toast('✓ 已撤销 · 鼠恢复在养并回笼 · 时间线完整保留');
+}
+
+/* 待办动作 */
+function todoAct(id,act){
+ const t=TODOS.find(x=>x.id===id);
+ if(!t)return;
+ if(t.type==='断乳'&&act==='wean')execWean(t.litter,t);
+}
+function execWean(lid,t){
+ const L=LITTERS[lid];if(!L||L.weaned){toast('该窝已断乳');return;}
+ const pos=firstEmpty();CAGES[pos]={pos,kind:'普通',pairId:null,mice:[],pups:null};
+ const newIds=[];
+ for(let i=0;i<L.count;i++){
+  const id=nid();newIds.push(id);
+  addMouse({id,sex:i%2?'♀':'♂',strain:L.strain,birth:L.birth,geno:'待鉴定',cage:pos,source:'本室繁育（'+lid+'）',
+   fa:L.sire,mo:L.dam,events:[{t:TODAY+' '+NOWT,who:ui.user,text:'断乳建档（窝次 '+lid+'）· 入笼 '+pos,cls:''}]});
+  CAGES[pos].mice.push(id);
+ }
+ L.weaned=true;
+ const pc=CAGES[L.cage];if(pc)pc.pups=null;
+ t.done=true;
+ TODOS.push({id:'t'+(todoSeq++),type:'鉴定',tone:'amber',title:'待鉴定 · 窝次 '+lid+' 仔鼠 '+L.count+' 只',detail:'断乳完成且基因型待鉴定 → 送检（FR-5）· 新笼 '+pos,due:'断乳完成时生成',done:false});
+ BATCHES.push({id:'TB-2026-'+String(BATCHES.length+1).padStart(3,'0'),title:'送检批 · Cre PCR（窝次 '+lid+' 仔鼠，断乳后新建）',status:'结果回收 · 待录入',
+  rows:newIds.map(id=>({mid:id,sex:M[id].sex,cre:'待录入',flox:'待录入',src:'窝次 '+lid,target:'—'}))});
+ OPLOG.unshift({t:NOWT,text:'窝次 '+lid+' 断乳分笼：'+L.count+' 只建档入笼 '+pos+' · '+ui.user});
+ render();toast('✓ 断乳完成：'+L.count+' 只档案已生成并入笼 '+pos+' · 已生成「待鉴定」待办与送检批');
+}
+
+/* ================= 笼位看板 FR-1 ================= */
+function pBoard(){
+ let h='<div class="pagehead"><h1>笼位看板</h1><span class="frtag">FR-1</span></div>'
+ +'<div class="pagedesc">房间 A · 笼架网格 · 点击笼格查看详情；黄色 = 有未完成提醒；移动 / 新建即时持久化并写入留痕</div>';
+ h+='<div class="racktabs"><button class="'+(ui.rack==='R1'?'on':'')+'" onclick="ui.rack=\'R1\';render()">笼架 R1</button><button class="'+(ui.rack==='R2'?'on':'')+'" onclick="ui.rack=\'R2\';render()">笼架 R2</button></div>';
+ h+='<div class="legend"><span class="l1"><i></i>正常</span><span class="l2"><i></i>有待办</span><span><i></i>空笼位</span>'
+ +(ui.moveFrom?'<span class="b-red banner" style="margin:0;padding:2px 10px;">移动模式：点击目标空笼位 <a onclick="ui.moveFrom=null;render()" style="cursor:pointer;color:var(--warn);">取消</a></span>':'')+'</div>';
+ h+='<div class="rack">';
+ ROWS.forEach(rw=>{for(let c=1;c<=6;c++){
+  const pos=ui.rack+'-'+rw+c;const cg=CAGES[pos];
+  if(cg){
+   const warn=cageHasTodo(pos);
+   const n=cg.mice.length;
+   h+='<div class="cell occ'+(warn?' warn-cell':'')+(ui.moveFrom===pos?' sel':'')+'" onclick="cellClick(\''+pos+'\')">'
+   +'<span class="cid">'+pos.split('-')[1]+'</span><span class="cnt">'+n+' 只'+(cg.pups?'+'+cg.pups.count+'仔':'')+(warn?' ⚠':'')+'</span></div>';
+  }else{
+   h+='<div class="cell'+(ui.moveFrom?' pulse':'')+'" onclick="cellClick(\''+pos+'\')"><span class="cnt">空</span></div>';
+  }
+ }});
+ h+='</div>';
+ // 详情面板
+ const sel=ui.selPos&&CAGES[ui.selPos]?ui.selPos:null;
+ if(sel){
+  const cg=CAGES[sel];
+  h+='<div class="card" style="background:#fbfcfe;"><h3>笼 '+sel+' <span class="tag gray">'+(cg.kind||'普通')+'</span>'
+  +(cg.pups?'<span class="tag amber">未断乳仔鼠 '+cg.pups.count+'</span>':'')+'<span class="rt">'+cg.mice.length+' 只在养</span></h3>';
+  const pair=cg.pairId?PAIRS[cg.pairId]:null;
+  if(pair)h+='<div class="small mut">繁育对 '+cg.pairId+'（'+pair.status+'）· 公 '+pair.sire+' × 母 '+pair.dams.join(' / ')+' · 合笼 '+pair.since+'</div>';
+  if(cg.pups){const L=LITTERS[cg.pups.litter];
+   h+='<div class="banner b-amber">窝次 '+L.id+' · 存栏 '+L.count+' · 出生 '+L.birth+' · 断乳约 '+weanDate(L.birth)+(L.note?' · '+L.note:'')+'</div>';}
+  h+='<div style="margin:6px 0;">'+(cg.mice.map(id=>'<span class="chip id" onclick="archOpen(\''+id+'\')">'+sexChip(M[id].sex)+id+' · '+M[id].geno+'</span>').join('')||'<span class="mut small">无在养鼠</span>')+'</div>';
+  const tds=activeTodos().filter(t=>t.cage===sel);
+  tds.forEach(t=>h+='<div class="banner b-amber">⚠ '+t.title+'（'+t.due+'）<a style="cursor:pointer;color:var(--warn);margin-left:8px;" onclick="doneTodo(\''+t.id+'\')">确认完成</a></div>');
+  h+='<div><button class="btn" onclick="boardMoveStart(\''+sel+'\')">移动笼子到空位</button>'
+  +'<button class="btn" onclick="boardTodoOpen(\''+sel+'\')">＋ 设置待办</button>'
+  +'<button class="btn" onclick="nav(\'scan\');scanCage(\''+sel+'\')">观察记录（去工作台）</button>'
+  +'<button class="btn ghost" onclick="toast(\'已发送打印任务（P1 提供批量模板）\')">打印笼卡</button></div>';
+  h+='</div>';
+ }else if(ui.selPos&&!CAGES[ui.selPos]&&!ui.moveFrom){
+  h+='<div class="card" style="background:#fbfcfe;"><h3>笼位 '+ui.selPos+'（空）</h3>'
+  +'<div class="small mut">选中空笼位，可放入新笼（建档外购鼠演示）。</div>'
+  +'<button class="btn primary" onclick="boardNewCage(\''+ui.selPos+'\')">放入新笼</button></div>';
+ }
+ h+='<div class="card"><h3>最近操作（S-1 全量留痕）</h3>'+OPLOG.slice(0,6).map(o=>'<div class="timeline"><div class="tl-item"><span class="tl-dot"></span><div>'+o.t+' · '+o.text+'</div></div></div>').join('')+'</div>';
+ return h;
+}
+function weanDate(b){const d=new Date(b);d.setDate(d.getDate()+21);
+ const m=('0'+(d.getMonth()+1)).slice(-2);return TODAY.slice(0,4)+'-'+m+'-'+('0'+d.getDate()).slice(-2);}
+function cellClick(pos){
+ if(ui.moveFrom){if(!CAGES[pos])doMove(ui.moveFrom,pos);return;}
+ ui.selPos=pos;render();
+}
+function boardMoveStart(pos){ui.moveFrom=pos;ui.selPos=pos;render();}
+function doMove(from,to){
+ CAGES[to]=CAGES[from];CAGES[to].pos=to;delete CAGES[from];
+ CAGES[to].mice.forEach(id=>M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'笼位移动：'+from+' → '+to,cls:''}));
+ OPLOG.unshift({t:NOWT,text:'笼 '+from+' 整体移动至 '+to+' · '+ui.user});
+ ui.moveFrom=null;ui.selPos=to;render();toast('✓ 笼已移动至 '+to+' · 笼位历史已留痕');
+}
+function boardNewCage(pos){
+ ui.wiz={step:'newCage',pos:pos,kind:'普通',sel:new Set()};renderModal();
+}
+function boardNewPurchased(pos){
+ const a=nid(),b=nid();
+ CAGES[pos]={pos,kind:'普通',pairId:null,mice:[a,b],pups:null};
+ addMouse({id:a,sex:'♂',birth:'约 2026-09-11',geno:'WT',cage:pos,source:'外购（杰克逊实验室 · 批号 26-0917）',
+  events:[{t:TODAY+' '+NOWT,who:ui.user,text:'外购建档（周龄反推出生日期，标记「约」）· 入笼 '+pos,cls:''}]});
+ addMouse({id:b,sex:'♀',birth:'约 2026-09-11',geno:'WT',cage:pos,source:'外购（杰克逊实验室 · 批号 26-0917）',
+  events:[{t:TODAY+' '+NOWT,who:ui.user,text:'外购建档 · 入笼 '+pos,cls:''}]});
+ OPLOG.unshift({t:NOWT,text:'笼位 '+pos+' 放入新笼 · 外购建档 2 只 · '+ui.user});
+ ui.wiz=null;ui.selPos=pos;renderModal();render();toast('✓ 新笼已建立（'+a+' / '+b+'）');
+}
+function ncKind(k){ui.wiz.kind=k;renderModal();}
+function ncToggle(id){const w=ui.wiz;if(w.sel.has(id))w.sel.delete(id);else w.sel.add(id);renderModal();}
+function newCageSubmit(){
+ const w=ui.wiz,pos=w.pos,ids=[...w.sel];
+ if(!ids.length){toast('请至少选择 1 只鼠');return;}
+ if(CAGES[pos]){toast('笼位已被占用');return;}
+ CAGES[pos]={pos,kind:w.kind,pairId:null,mice:[],pups:null};
+ ids.forEach(id=>{
+  const old=M[id].cage;
+  if(old&&CAGES[old]){CAGES[old].mice=CAGES[old].mice.filter(x=>x!==id);if(!CAGES[old].mice.length&&!CAGES[old].pups)delete CAGES[old];}
+  M[id].cage=pos;
+  M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'移入新笼 '+pos+(old?'（自 '+old+' 移出）':'')+' · 笼型「'+w.kind+'」',cls:''});
+  CAGES[pos].mice.push(id);
+ });
+ OPLOG.unshift({t:NOWT,text:'笼位 '+pos+' 放入新笼（'+w.kind+'）· 移入 '+ids.length+' 只：'+ids.join(' / ')+' · '+ui.user});
+ ui.wiz=null;ui.selPos=pos;renderModal();render();toast('✓ 新笼 '+pos+' 已建立（'+w.kind+' · '+ids.length+' 只）');
+}
+function boardTodoOpen(pos){ui.wiz={step:'newTodo',pos:pos};renderModal();}
+function todoSubmit(){
+ const w=ui.wiz;const title=($('ntTitle').value||'').trim();
+ if(!title){toast('请填写待办内容');return;}
+ const note=($('ntNote').value||'').trim();
+ TODOS.push({id:'t'+(todoSeq++),type:'自定义',tone:'amber',title:title,detail:note||'笼位看板手动设置',due:'手动设置',cage:w.pos,done:false});
+ OPLOG.unshift({t:NOWT,text:'笼位 '+w.pos+' 设置待办「'+title+'」 · '+ui.user});
+ ui.wiz=null;renderModal();render();toast('✓ 待办已设置 · 笼位 '+w.pos);
+}
+function doneTodo(tid){
+ const t=TODOS.find(x=>x.id===tid);if(!t||t.done)return;
+ t.done=true;
+ OPLOG.unshift({t:NOWT,text:'待办完成「'+t.title+'」 · '+ui.user});
+ render();toast('✓ 待办已确认完成');
+}
+
+/* ================= 工作台 FR-3 ================= */
+function pScan(){
+ let h='<div class="pagehead"><h1>工作台</h1><span class="frtag">FR-3</span></div>'
+ +'<div class="pagedesc">日常操作入口：选择笼位 → 三步内完成当日操作（换笼 / 观察记录 / 产仔登记 / 查看待办）</div>';
+ h+='<div class="grid2"><div>';
+ h+='<div class="card"><h3>选择笼位</h3>'
+ +'<div class="choice">'+Object.keys(CAGES).sort().map(p=>'<button onclick="scanCage(\''+p+'\')">'+p+'</button>').join('')+'</div>'
+ +'<div class="scanrow"><input id="scanIn" placeholder="搜索笼号 / 鼠号，如 R1-A2"><button class="btn primary" onclick="scanInput()">查找</button></div>'
+ +'<div class="smaller mut">未注册的鼠号可直接现场建档。</div></div>';
+ h+='</div><div>';
+ if(!ui.scan){h+='<div class="card"><h3>等待选择笼位…</h3><div class="mut small">左侧选择已有笼位，或搜索编号；也可先在「笼位看板」放入新笼。</div></div>';}
+ else{
+  const s=ui.scan;
+  if(s.err){
+   h+='<div class="card"><div class="banner b-red">未注册 ID：'+s.err+'</div><div class="small mut">可现场以此 ID 建档（FR-3 异常流程）。</div>'
+   +'<button class="btn primary" onclick="regBuild()">以此 ID 现场建档</button>'
+   +'<div id="regForm">'+regFormHtml()+'</div></div>';
+  }else{
+ if(s.cage){
+  const cg=CAGES[s.cage];
+  if(!cg){ui.scan=null;return pScan();}
+   h+='<div class="card"><h3>笼 '+s.cage+' <span class="tag gray">'+(cg.kind||'普通')+'</span> <span class="rt">'+cg.mice.length+' 只在养</span></h3>';
+   if(s.view==='menu'){
+    h+='<div style="margin:6px 0;">'+cg.mice.map(id=>'<span class="chip id" onclick="archOpen(\''+id+'\')">'+sexChip(M[id].sex)+id+'</span>').join('')+(cg.pups?'<span class="chip amber">仔鼠 '+cg.pups.count+'（未断乳 · 无档案）</span>':'')+'</div>';
+    h+='<div class="choice" style="flex-direction:column;align-items:stretch;">'
+    +'<button onclick="scanAct(\'swap\')">① 快速换笼</button>'
+    +'<button onclick="scanAct(\'obs\')">② 观察记录（含死亡登记）</button>'
+    +'<button onclick="scanAct(\'birth\')" '+(cg.kind==='繁殖笼'?'':'disabled')+'>③ 产仔登记（繁殖笼专属）</button>'
+    +'<button onclick="scanAct(\'todos\')">④ 查看本笼待办</button></div>';
+    if(cg.kind==='繁殖笼'&&(cg.pups||isPairEnded(s.cage)))h+='<div class="smaller mut">'+(cg.pups?'本笼存在未断乳窝次，产仔登记不可用。':'本笼繁育对已结束，产仔登记不可用。')+'</div>';
+   }
+   if(s.view==='swap'){
+    h+='<div class="b-blue banner">选择目标空笼位（笼整体移动，仔鼠随笼）</div><div class="choice">'
+    +emptyPositions().slice(0,14).map(p=>'<button onclick="swapTo(\''+p+'\')">'+p+'</button>').join('')+'</div>'
+    +backBtn();
+   }
+   if(s.view==='obs'){
+    h+='<span class="lbl">观察记录（预设项）</span><div class="choice">'
+    +['正常','精神差','打斗受伤','死亡'].map(o=>'<button class="'+(s.obs===o?'on':'')+'" onclick="ui.scan.obs=\''+o+'\';render()">'+o+'</button>').join('')+'</div>';
+    if(s.obs==='死亡')h+='<div class="b-red banner">选「死亡」→ 进入死亡登记：死因已知走完整登记（FR-8），现场无法判断走快速登记（FR-8a）。</div>';
+    h+='<button class="btn primary" onclick="obsSubmit()" '+(s.obs?'':'disabled')+'>提交观察</button>'+backBtn();
+   }
+   if(s.view==='birth'){
+    h+='<span class="lbl">仔鼠数</span><div class="choice">'+[4,5,6,7,8].map(n=>'<button class="'+(s.pupsN===n?'on':'')+'" onclick="ui.scan.pupsN='+n+';render()">'+n+'</button>').join('')+'</div>'
+    +'<div class="small mut">出生日期默认今日 '+TODAY+'；提交后生成窝次、自动计算断乳日（+21 天）并生成待办。</div>'
+    +'<button class="btn primary" onclick="birthSubmit()" '+(s.pupsN?'':'disabled')+'>提交产仔登记</button>'+backBtn();
+   }
+   if(s.view==='todos'){
+    const tds=activeTodos().filter(t=>t.cage===s.cage);
+    h+=tds.length?tds.map(t=>'<div class="todo-item tone-amber small"><b>'+t.title+'</b> · '+t.due+'</div>').join(''):'<div class="mut small">本笼暂无未完成提醒。</div>';
+    h+=backBtn();
+   }
+   if(s.view==='done'){
+    h+='<div class="b-ok banner">✓ '+s.msg+'</div>'
+    +'<button class="btn primary" onclick="ui.scan=null;render()">继续处理下一笼</button>';
+   }
+   h+='</div>';
+  }
+ }
+ }
+ h+='</div></div>';
+ return h;
+}
+function backBtn(){return '<button class="btn ghost" onclick="ui.scan.view=\'menu\';render()">← 返回</button>';}
+function isPairEnded(pos){const cg=CAGES[pos];return cg.pairId&&PAIRS[cg.pairId].status==='已结束';}
+function scanCage(pos){ui.scan={cage:pos,view:'menu'};if(ui.cur!=='scan')nav('scan');else render();}
+function scanInput(){
+ const v=($('scanIn').value||'').trim();if(!v)return;
+ if(CAGES[v]){scanCage(v);return;}
+ if(M[v]){toast('鼠码 → 跳转档案');archOpen(v);return;}
+ ui.scan={err:v,view:'menu'};if(ui.cur!=='scan')nav('scan');else render();
+}
+function scanAct(v){ui.scan.view=v;render();}
+function swapTo(p){doMove(ui.scan.cage,p);ui.scan={cage:p,view:'done',msg:'已换笼至 '+p+' · 换笼记录已写入双方时间线'};render();}
+function obsSubmit(){
+ const o=ui.scan.obs;if(!o)return;
+ const cg=CAGES[ui.scan.cage];
+ cg.mice.forEach(id=>M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'观察记录：'+o+'（笼 '+ui.scan.cage+'）',cls:o==='正常'?'ok':''}));
+ if(o==='死亡'){openDeath({cage:ui.scan.cage});return;}
+ OPLOG.unshift({t:NOWT,text:'笼 '+ui.scan.cage+' 观察记录：'+o+' · '+ui.user});
+ ui.scan={cage:ui.scan.cage,view:'done',msg:'观察记录已保存（'+o+'）'};render();
+}
+function birthSubmit(){
+ const n=ui.scan.pupsN;if(!n)return;
+ const pos=ui.scan.cage;const lid='L-0'+(litterSeq++);
+ LITTERS[lid]={id:lid,sire:null,dam:null,damNote:'母本待确认',birth:TODAY,count:n,strain:'C57BL/6J',cage:pos,weaned:false,note:''};
+ CAGES[pos].pups={litter:lid,count:n,birth:TODAY};
+ TODOS.push({id:'t'+(todoSeq++),type:'断乳',tone:'amber',title:'待断乳 · 窝次 '+lid+'（存栏 '+n+'）',detail:weanDate(TODAY)+' 到期（出生 '+TODAY+' + 21 天）· 笼 '+pos,due:weanDate(TODAY)+' 到期',cage:pos,litter:lid,done:false});
+ TODOS.forEach(t=>{if(t.type==='查栓'&&t.cage===pos&&!t.done){t.done=true;}});
+ OPLOG.unshift({t:NOWT,text:'产仔登记：窝次 '+lid+'（'+n+' 只）· 笼 '+pos+' · '+ui.user});
+ ui.scan={cage:pos,view:'done',msg:'窝次 '+lid+' 已登记（'+n+' 只）· 断乳待办已生成（'+weanDate(TODAY)+'）· 查栓待办自动关闭'};
+ render();
+}
+function regFormHtml(){
+ const r=ui.newReg;
+ return (r.show?'<div style="margin-top:10px;"><span class="lbl">性别</span><div class="choice">'
+ +['♂','♀'].map(s=>'<button class="'+(r.sex===s?'on':'')+'" onclick="ui.newReg.sex=\''+s+'\';render()">'+s+'</button>').join('')
+ +'</div><span class="lbl">品系</span><div class="choice">'
+ +['C57BL/6J','BALB/c'].map(s=>'<button class="'+(r.strain===s?'on':'')+'" onclick="ui.newReg.strain=\''+s+'\';render()">'+s+'</button>').join('')
+ +'</div><button class="btn primary" onclick="regSubmit()" '+(r.sex&&r.strain?'':'disabled')+'>建档并入笼</button></div>'
+ :'<button class="btn" onclick="ui.newReg.show=true;render()">填写建档信息</button>');
+}
+function regBuild(){ui.newReg={show:true,sex:null,strain:null,id:ui.scan.err};render();}
+function regSubmit(){
+ const r=ui.newReg;const pos=firstEmpty();
+ if(!pos){toast('无空笼位');return;}
+ CAGES[pos]={pos,kind:'普通',pairId:null,mice:[r.id],pups:null};
+ addMouse({id:r.id,sex:r.sex,strain:r.strain,birth:'约 2026-06-01',geno:'待鉴定',cage:pos,source:'现场建档（工作台录入）',
+  events:[{t:TODAY+' '+NOWT,who:ui.user,text:'现场建档（未注册 ID 兜底）· 入笼 '+pos,cls:''}]});
+ OPLOG.unshift({t:NOWT,text:'现场建档 '+r.id+'（笼 '+pos+'）· '+ui.user});
+ ui.scan={cage:pos,view:'done',msg:'已建档 '+r.id+' 并入笼 '+pos};render();
+}
+
+/* ================= 死亡登记（FR-8 完整 / FR-8a 快速） ================= */
+function openDeath(opt){
+ ui.wiz={step:'pick',cage:opt.cage||null,mids:opt.mids||[],sel:new Set(opt.mids||[]),
+  mode:null,term:opt.forceTerm||null,cause:opt.forceCause||null,initial:'外观无异常',scene:'日常巡查',photos:[],
+  forceMode:opt.forceMode||null,forceTerm:opt.forceTerm||null,forceCause:opt.forceCause||null,from:opt.from||'scan',doneMsg:null};
+ if(opt.mids&&opt.mids.length){
+  ui.wiz.mode=opt.forceMode||null;
+  if(opt.forceMode==='full'){ui.wiz.step='full';}
+  else if(opt.forceMode==='quick'){ui.wiz.step='quick';}
+  else ui.wiz.step='mode';
+ }
+ renderModal();
+}
+function renderModal(){
+ const root=$('modalRoot');
+ if(!ui.wiz){root.innerHTML='';return;}
+ const w=ui.wiz;let h='<div class="modal-mask" onmousedown="ui._maskDown=event.target===this" onclick="if(event.target===this&&ui._maskDown)closeModal()"><div class="modal">';
+ const mTitle=w.step==='newArch'?'新建档案':w.step==='newPlan'?'新建实验计划':w.step==='newUser'?'注册操作人':w.step==='newCage'?('放入新笼 · '+w.pos):w.step==='newTodo'?('设置待办 · '+w.pos):w.step==='editMouse'?('修改基础字段 · '+w.mid):w.step==='share'?'分享 / 导入数据':w.step==='shareProg'?'正在导入…':w.step==='shareDone'?'导入成功':'死亡 / 离群登记';
+ h+='<div class="m-head"><b>'+mTitle+'</b><span class="m-close" onclick="closeModal()">✕</span></div>';
+ if(w.step==='newUser'){
+  h+='<div class="b-blue banner">注册仅登记姓名，用于操作留痕与待办路由（无权限差异）。</div>'
+  +'<span class="lbl">姓名 / 昵称（必填，不可重复）</span><div class="scanrow"><input type="text" id="nuName" placeholder="如 赵同学"></div>'
+  +'<button class="btn primary block" onclick="userSubmit()">注册并切换</button>';
+  h+='</div></div>';root.innerHTML=h;return;
+ }
+ if(w.step==='newArch'){h+=renderModalNew();h+='</div></div>';root.innerHTML=h;return;}
+ if(w.step==='newPlan'){h+=renderModalPlan();h+='</div></div>';root.innerHTML=h;return;}
+ if(w.step==='newCage'){
+  const pool=Object.values(M).filter(m=>m.status==='active').sort((a,b)=>((a.cage||'')<(b.cage||'')?-1:(a.cage||'')>(b.cage||'')?1:0));
+  h+='<div class="b-blue banner">勾选要移入 <b>'+w.pos+'</b> 的在养鼠（可多选），并标记笼型；原笼清空后自动释放笼位。</div>'
+  +'<span class="lbl">笼型标记</span><div class="choice">'+['普通','繁殖'].map(k=>'<button class="'+(w.kind===k?'on':'')+'" onclick="ncKind(\''+k+'\')">'+k+'笼</button>').join('')+'</div>'
+  +'<span class="lbl">选择老鼠（在养 '+pool.length+' 只 · 已选 '+w.sel.size+'）</span>'
+  +pool.map(m=>'<div class="radio-row '+(w.sel.has(m.id)?'on':'')+'" onclick="ncToggle(\''+m.id+'\')"><b>'+m.sex+' '+m.id+'</b><span class="chip">'+(m.cage||'无笼位')+'</span><span class="mut smaller">'+m.strain+' · '+m.geno+'</span></div>').join('')
+  +'<button class="btn primary block" onclick="newCageSubmit()" '+(w.sel.size?'':'disabled')+'>确认放入（'+w.sel.size+' 只 → '+w.kind+'笼）</button>'
+  +'<div class="smaller mut" style="margin-top:6px;">没有合适的鼠？<a style="cursor:pointer;color:#2f6fed;" onclick="boardNewPurchased(\''+w.pos+'\')">新建 2 只外购鼠直接入笼</a></div>';
+ }
+ if(w.step==='newTodo'){
+  h+='<div class="b-blue banner">为笼位 <b>'+w.pos+'</b> 设置一条自定义待办，设置后笼格会亮起提醒标记，并同步出现在首页待办。</div>'
+  +'<span class="lbl">待办内容（必填）</span><div class="scanrow"><input type="text" id="ntTitle" placeholder="如 周三前换笼 / 检查水壶"></div>'
+  +'<span class="lbl">备注（可选）</span><div class="scanrow"><input type="text" id="ntNote" placeholder="补充说明"></div>'
+  +'<button class="btn primary block" onclick="todoSubmit()">保存待办</button>';
+ }
+ if(w.step==='editMouse'){
+  const em=M[w.mid];
+  h+='<div class="b-blue banner">修改将写入档案时间线与操作日志（只增不改，旧值留痕）。</div>'
+  +((em.events.length>1||em.events[0].text.indexOf('初始建档')!==0)?'<div class="b-amber banner">该档案已存在下游事件，出生日期 / 性别 / 来源为锁定字段，本次修改属解锁修改（留痕）。</div>':'')
+  +'<span class="lbl">品系（必填）</span><div class="scanrow"><input type="text" id="efStrain" value="'+esc(w.strain)+'" oninput="ui.wiz.strain=this.value"></div>'
+  +'<span class="lbl">性别</span><div class="choice">'+['♂','♀'].map(s=>'<button class="'+(w.sex===s?'on':'')+'" onclick="ui.wiz.sex=\''+s+'\';renderModal()">'+s+'</button>').join('')+'</div>'
+  +'<span class="lbl">出生日期（必填，可带「约」前缀，如 约 2026-09-11）</span><div class="scanrow"><input type="text" id="efBirth" value="'+esc(w.birth)+'" oninput="ui.wiz.birth=this.value"></div>'
+  +'<span class="lbl">来源（必填）</span><div class="scanrow"><input type="text" id="efSource" value="'+esc(w.source)+'" oninput="ui.wiz.source=this.value"></div>'
+  +'<button class="btn primary block" onclick="editMouseSubmit()">保存修改（留痕）</button>';
+ }
+ if(w.step==='share'){
+  const klen=w.code?w.code.length:0;
+  h+='<div class="choice" style="margin-bottom:10px;"><button class="'+(w.tab==='out'?'on':'')+'" onclick="shareTab(\'out\')">生成分享码</button><button class="'+(w.tab==='in'?'on':'')+'" onclick="shareTab(\'in\')">加载分享码</button></div>';
+  if(w.tab==='out'){
+   h+='<div class="b-blue banner">将当前全部数据（鼠 '+Object.keys(M).length+' 只 · 笼位 '+Object.keys(CAGES).length+' · 终态 '+DEATHS.length+' 条 · 待办 '+TODOS.filter(t=>!t.done).length+' 未完成 · 计划 / 繁育 / 送检 / 日志）打包为一段分享码，可发给他人或在另一台设备恢复，纯前端无服务器。<br>当前数据版本：<b>v'+SHARE_VER+'</b> · 低版本码可兼容导入，高版本码将被拦截。</div>'
+   +'<button class="btn primary block" onclick="shareGen()">生成分享码</button>'
+   +(w.code
+     ?'<div class="smaller mut" style="margin:8px 0 4px;">共 '+klen+' 字符 · 生成于 '+TODAY+' '+NOWT+'</div>'
+     +'<textarea id="shareOut" readonly style="width:100%;height:150px;font-size:11px;font-family:var(--mono);word-break:break-all;">'+w.code+'</textarea>'
+     +'<button class="btn block" style="margin-top:8px;" onclick="shareCopy()">复制分享码</button>'
+     :'');
+  }else{
+   h+='<div class="b-amber banner">⚠ 加载分享码将<b>完全覆盖</b>当前所有数据。导入前会自动生成当前数据的备份码，请留意确认框内容。</div>'
+   +'<textarea id="shareIn" placeholder="粘贴分享码…" style="width:100%;height:150px;font-size:11px;font-family:var(--mono);word-break:break-all;"></textarea>'
+   +'<button class="btn primary block" style="margin-top:8px;" onclick="shareImport()">加载分享码</button>';
+  }
+ }
+ if(w.step==='shareProg'){
+  h+='<div class="b-blue banner">正在导入分享码快照，请勿关闭或刷新页面…</div>'
+  +'<div class="bar" style="height:14px;margin:12px 0 6px;"><i style="height:100%;width:'+w.pct+'%;transition:width .15s ease;"></i></div>'
+  +'<div style="display:flex;justify-content:space-between;align-items:center;"><span class="small">'+(w.label||'准备中')+'</span><b>'+w.pct+'%</b></div>'
+  +'<div class="smaller mut" style="margin-top:8px;">步骤 '+Math.min(w.i+1,w.steps.length)+' / '+w.steps.length+' · 共 '+w.steps.length+' 步</div>';
+ }
+ if(w.step==='shareDone'){
+  h+='<div class="b-ok banner">✓ 分享码导入成功，当前数据已切换为快照内容。</div>'
+  +'<div class="kv">'
+  +'<span class="k">数据版本</span><div>v'+w.snapV+'</div>'
+  +(w.snapAt?'<span class="k">快照生成时间</span><div>'+w.snapAt+'</div>':'')
+  +'<span class="k">鼠档案</span><div>'+Object.keys(M).length+' 只</div>'
+  +'<span class="k">笼位</span><div>'+Object.keys(CAGES).length+' 个（'+Object.values(CAGES).filter(c=>c.kind==='繁殖笼').length+' 繁殖笼）</div>'
+  +'<span class="k">终态记录</span><div>'+DEATHS.length+' 条（待归因 '+DEATHS.filter(r=>r.pending&&!r.revoked).length+'）</div>'
+  +'<span class="k">待办</span><div>'+activeTodos().length+' 未完成</div>'
+  +'<span class="k">实验计划</span><div>'+Object.keys(PLANS).length+' 个</div>'
+  +'<span class="k">当前操作人</span><div>'+ui.user+'</div></div>'
+  +'<button class="btn primary block" onclick="shareDoneClose()">开始使用</button>';
+ }
+ if(w.step==='pick'){
+  const cg=CAGES[w.cage];
+  h+='<div class="b-red banner">选择死亡个体（逐只勾选，防整笼误标）</div>';
+  h+=cg.mice.map(id=>'<div class="radio-row red '+(w.sel.has(id)?'on':'')+'" onclick="wizPick(\''+id+'\')"><b>'+M[id].sex+' '+id+'</b>'
+   +(M[id].plan?'<span class="chip">计划 '+M[id].plan+'</span>':'')+'<span class="mut smaller">'+M[id].strain+' · '+ageTxt(M[id].birth)+'</span></div>').join('');
+  if(cg.pups)h+='<div class="banner b-blue">未断乳仔鼠死亡不走个体登记，走「窝次数量修正」（FR-8a 分支A，在首页演示）。</div>';
+  h+='<button class="btn danger block" onclick="wizTo(\'mode\')" '+(w.sel.size?'':'disabled')+'>下一步（已选 '+w.sel.size+' 只）</button>';
+ }
+ if(w.step==='mode'){
+  h+=selChips(w);
+  h+='<div class="radio-row '+(w.mode==='quick'?'on':'')+'" onclick="wizMode(\'quick\')"><b>快速登记（初判）</b><span class="tag amber">FR-8a</span><span class="mut smaller">状态立即生效 · 死因为受限初判枚举 · 责任人 48h 内归因确认 · 当日可撤销</span></div>'
+  +'<div class="radio-row '+(w.mode==='full'?'on':'')+'" onclick="wizMode(\'full\')"><b>完整登记（死因已知）</b><span class="tag p0">FR-8</span><span class="mut smaller">正式死因枚举 · 原因必填 · 需输入「确认」执行</span></div>'
+  +'<div class="smaller mut">范围：快速登记仅限「自然死亡」；「已用于实验（安乐死）」与「淘汰」是明确决策，始终走完整登记。</div>'
+  +'<button class="btn primary block" onclick="wizTo(ui.wiz.mode===\'full\'?\'full\':\'quick\')" '+(w.mode?'':'disabled')+'>下一步</button>';
+ }
+ if(w.step==='quick'){
+  h+='<div class="b-amber banner">快速登记模式：提交后状态<strong>立即生效</strong>，死因为初判，需责任人 48h 内归因确认。</div>';
+  h+=selChips(w);
+  h+='<div class="field"><span class="lb">发现时间（默认当前，可改）</span><div class="val">'+TODAY+' '+NOWT+'</div></div>';
+  h+='<span class="lbl">发现场景</span><div class="choice">'+['日常巡查','换笼时','其他'].map(s=>'<button class="'+(w.scene===s?'on':'')+'" onclick="ui.wiz.scene=\''+s+'\';renderModal()">'+s+'</button>').join('')+'</div>';
+  h+='<span class="lbl">初判死因（受限枚举，正式死因由责任人确认）</span><div class="choice danger">'
+  +['外观无异常','明显病变','打斗外伤','感染导致','药物导致','无法判断'].map(s=>'<button class="'+(w.initial===s?'on':'')+'" onclick="ui.wiz.initial=\''+s+'\';renderModal()">'+s+'</button>').join('')+'</div>';
+  h+='<span class="lbl">照片留存（可选，可多张）</span>'
+  +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0;">'
+  +'<button class="btn" onclick="document.getElementById(\'wizCamIn\').click()">📷 拍照</button>'
+  +'<button class="btn" onclick="document.getElementById(\'wizFileIn\').click()">🖼 导入照片</button>'
+  +'<input type="file" id="wizCamIn" accept="image/*" capture="environment" style="display:none" onchange="wizPhoto(this)">'
+  +'<input type="file" id="wizFileIn" accept="image/*" multiple style="display:none" onchange="wizPhoto(this)">'
+  +'</div>'
+  +(w.photos.length
+    ?'<div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 6px;">'+w.photos.map((p,i)=>'<div style="position:relative;width:64px;height:64px;"><img src="'+p.url+'" title="'+esc(p.name)+'" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);"><span onclick="wizPhotoDel('+i+')" style="position:absolute;top:-7px;right:-7px;background:var(--warn);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:18px;text-align:center;cursor:pointer;">✕</span></div>').join('')+'</div>'
+    :'<div class="smaller mut" style="margin-bottom:6px;">暂无照片 · 桌面浏览器点「拍照」将打开文件选择（移动端直接调起相机）</div>');
+  h+='<button class="btn primary block" onclick="wizQuickSubmit()">提交登记（立即生效）</button>';
+ }
+ if(w.step==='full'){
+  h+=selChips(w);
+  h+='<span class="lbl">终态（三选一）</span><div class="choice">'
+  +['已用于实验','自然死亡','淘汰'].map(s=>'<button class="'+(w.term===s?'on':'')+'" onclick="ui.wiz.term=\''+s+'\';renderModal()">'+s+'</button>').join('')+'</div>';
+  h+='<span class="lbl">原因（必填）</span><div class="choice danger">'
+  +['实验终点','人道终点-发病','人道终点-体重下降','基因型不符','超龄','其他'].map(s=>'<button class="'+(w.cause===s?'on':'')+'" onclick="ui.wiz.cause=\''+s+'\';renderModal()">'+s+'</button>').join('')+'</div>';
+  if(w.cause==='其他')h+='<div class="scanrow"><input id="wizNote" placeholder="其他-备注必填"><button class="btn ghost" onclick="ui.wiz.cause=\'其他-\'+document.getElementById(\'wizNote\').value||\'其他\';renderModal()">确定备注</button></div>';
+  h+='<button class="btn danger block" onclick="wizTo(\'confirm\')" '+(w.term&&w.cause?'':'disabled')+'>下一步：确认执行</button>';
+ }
+ if(w.step==='confirm'){
+  const list=[...w.sel];
+  h+='<div class="b-red banner">⚠ 将 '+list.length+' 只小鼠置为终态，请确认</div>'
+  +'<div class="small mut">'+list.map(id=>M[id].sex+' '+id+' · '+planName(M[id].plan)).join('<br>')+'</div>'
+  +'<div class="small" style="margin:6px 0;">终态：<b>'+w.term+'</b> · 原因：<b>'+w.cause+'</b>（'+w.term+' / '+w.cause+'）</div>';
+  const willUse=list.filter(id=>M[id].plan).length;
+  if(willUse)h+='<div class="banner b-amber">其中 '+willUse+' 只关联实验计划：实际用鼠数将实时回写（含快速登记口径一致）。</div>';
+  h+='<div class="scanrow"><input id="wizConfirm" placeholder="输入「确认」以执行"><button class="btn danger" onclick="wizFullConfirm()">执行</button></div>'
+  +backBtn2();
+ }
+ if(w.step==='done'){
+  h+='<div class="b-ok banner">✓ '+w.doneMsg+'</div>';
+  [...w.sel].forEach(id=>{
+   const rec=DEATHS.find(r=>r.mid===id&&!r.revoked);
+   const m=M[id];
+   h+='<div class="card" style="background:#fbfcfe;margin-top:8px;"><b>'+m.sex+' '+id+'</b> <span class="tag gray">'+(rec?rec.terminal:'终态')+'</span> '+(rec&&rec.pending?'<span class="tag amber">初判-待确认</span>':'')+'<span class="tag '+(rec&&rec.revocable?'ok':'gray')+'">'+(rec&&rec.revocable?'当日可撤销':'不可撤销')+'</span>';
+   if(rec&&rec.mode==='quick'){
+    h+='<div class="timeline"><div class="tl-item"><span class="tl-dot amber"></span><div>发现人：'+rec.finder+'<br>'+rec.time+' · '+rec.scene+' · 初判「'+rec.initial+'」</div></div>'
+    +'<div class="tl-item"><span class="tl-dot gray"></span><div class="mut">归因确认人：待'+(rec.plan?PLAN_OWNER[rec.plan]:'张老师（PI）')+'确认 · 48h 内</div></div></div>'
+    +(w.photos.length?'<div style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0;">'+w.photos.map(p=>'<img src="'+p.url+'" title="'+esc(p.name)+'" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">').join('')+'</div>':'')
+    +'<div class="banner b-blue">已生成待办 → '+(rec.plan?PLAN_OWNER[rec.plan]:'张老师（PI）')+'：死亡归因确认（剩 48h）</div>';
+   }
+   h+='</div>';
+  });
+  h+='<button class="btn primary block" onclick="closeModal()">完成（返回工作台）</button>';
+ }
+ h+='</div></div>';
+ root.innerHTML=h;
+}
+function backBtn2(){return '<button class="btn ghost" onclick="wizTo(\'full\')">← 返回</button>';}
+function selChips(w){return '<div style="margin:6px 0;">'+[...w.sel].map(id=>'<span class="chip id">'+M[id].sex+' '+id+'</span>').join('')+'</div>';}
+function wizPick(id){const w=ui.wiz;if(w.sel.has(id))w.sel.delete(id);else w.sel.add(id);renderModal();}
+function wizTo(s){ui.wiz.step=s;renderModal();}
+function wizMode(m){ui.wiz.mode=m;renderModal();}
+function closeModal(){if(ui.wiz&&ui.wiz.step==='shareProg'){toast('导入进行中，请稍候…');return;}ui.wiz=null;renderModal();render();}
+function shareDoneClose(){clearTimeout(ui._shareTimer);ui._shareTimer=null;ui.wiz=null;renderModal();render();}
+function wizPhoto(inp){
+ const w=ui.wiz;if(!w||!inp.files)return;
+ [...inp.files].forEach(f=>{if(f.type.indexOf('image/')===0)w.photos.push({name:f.name,url:URL.createObjectURL(f)});});
+ renderModal();
+}
+function wizPhotoDel(i){const w=ui.wiz;if(!w)return;URL.revokeObjectURL(w.photos[i].url);w.photos.splice(i,1);renderModal();}
+function wizQuickSubmit(){
+ const w=ui.wiz;const ids=[...w.sel];
+ ids.forEach(id=>applyDeath(id,{mode:'quick',terminal:'自然死亡',cause:'待确认',initial:w.initial,scene:w.scene,photos:w.photos.length}));
+ w.step='done';w.doneMsg='已登记生效 · '+ids.length+' 只置为「自然死亡」并移出笼位 · 归因待办已生成'+(w.photos.length?' · 留存照片 '+w.photos.length+' 张':'');
+ renderModal();
+}
+function wizFullConfirm(){
+ if($('wizConfirm').value!=='确认'){toast('请输入「确认」以执行');return;}
+ const w=ui.wiz;const ids=[...w.sel];
+ ids.forEach(id=>applyDeath(id,{mode:'full',terminal:w.term,cause:w.cause}));
+ w.step='done';w.doneMsg='已登记 · 终态「'+w.term+'」· 用鼠数已回写计划';
+ renderModal();
+}
+function applyDeath(id,o){
+ const m=M[id];const cage=m.cage;
+ m.status=o.terminal==='已用于实验'?'sacrificed':o.terminal==='淘汰'?'culled':'dead';
+ if(o.mode==='quick')m.deathPending=true;
+ if(cage&&CAGES[cage]){
+  CAGES[cage].mice=CAGES[cage].mice.filter(x=>x!==id);
+  if(CAGES[cage].mice.length===0&&!CAGES[cage].pups){delete CAGES[cage];}
+ }
+ if(m.plan){PLANS[m.plan].used++;}
+ const rec={mid:id,sex:m.sex,strain:m.strain,date:TODAY,month:TODAY.slice(0,7),terminal:o.terminal,cause:o.cause,mode:o.mode,
+  finder:ui.user,scene:o.scene||null,initial:o.initial||null,time:NOWT,plan:m.plan,cage,pending:o.mode==='quick',revocable:o.mode==='quick'||o.terminal==='已用于实验',revoked:false,confirmer:null,photos:o.photos||0};
+ DEATHS.unshift(rec);
+ m.events.push({t:TODAY+' '+NOWT,who:ui.user,
+  text:o.mode==='quick'?('快速登记死亡 · 初判「'+o.initial+'」· '+o.scene+(o.photos?' · 留存照片 '+o.photos+' 张':'')+' · 待归因确认（责任人 '+(m.plan?PLAN_OWNER[m.plan]:'PI')+'）'):('完整登记离群 · '+o.terminal+' · 原因「'+o.cause+'」'),
+  cls:o.mode==='quick'?'amber':'red'});
+ if(o.mode==='quick'){
+  TODOS.push({id:'t'+(todoSeq++),type:'归因',tone:'amber',title:'死亡归因确认 · '+m.sex+' '+id,
+   detail:'发现人 '+ui.user+' · '+NOWT+' · 初判「'+o.initial+'」· 责任人 '+(m.plan?PLAN_OWNER[m.plan]:'张老师（PI）')+(m.plan?'（分配人）':'')+(m.plan?' · 计划 '+m.plan:''),due:'剩 48h',recRef:rec,done:false});
+ }
+ if(cage&&CAGES[cage]&&CAGES[cage].pairId&&PAIRS[CAGES[cage].pairId].status==='合笼中'){
+  const pid=CAGES[cage].pairId;PAIRS[pid].status='已结束';PAIRS[pid].note='参与繁育的 '+id+' 进入终态后自动结束';
+  TODOS.push({id:'t'+(todoSeq++),type:'系统',tone:'dim',title:'繁育对 '+pid+' 已自动结束',detail:'参与繁育的 '+id+' 进入终态 · 通知创建人',due:'知会',done:false});
+ }
+ OPLOG.unshift({t:NOWT,text:(o.mode==='quick'?'快速登记死亡 ':'完整登记离群 · '+o.terminal+' ')+m.sex+' '+id+(cage?'（笼 '+cage+'）':'')+' · '+ui.user});
+}
+
+/* ================= 档案与谱系 FR-2/4 ================= */
+function pArch(){
+ if(ui.archId&&M[ui.archId])return archDetail(M[ui.archId]);
+ const q=ui.archQ.toLowerCase();
+ let list=Object.values(M).filter(m=>{
+  if(ui.archStatus==='在养'&&m.status!=='active')return false;
+  if(ui.archStatus==='终态'&&m.status==='active')return false;
+  if(ui.archStrain!=='全部'&&m.strain!==ui.archStrain)return false;
+  if(q&&!(m.id.toLowerCase().includes(q)||m.strain.toLowerCase().includes(q)||(m.geno||'').toLowerCase().includes(q)))return false;
+  return true;}).sort((a,b)=>a.id<b.id?1:-1).slice(0,40);
+ let h='<div class="pagehead"><h1>档案与谱系</h1><span class="frtag">FR-2 · FR-4</span></div>'
+ +'<div class="pagedesc">每只鼠一页档案：身份 + 时间线（倒序，只增不改）+ 谱系树 · 点击行进入档案</div>';
+ h+='<div class="card"><div class="scanrow">'
+ +'<input id="archQ" value="'+esc(ui.archQ)+'" placeholder="mouse_id 精确 / 品系 / 基因型 关键词" oninput="ui.archQ=this.value;ui._focus=\'archQ\';render()">'
+ +'<select class="pg" onchange="ui.archStatus=this.value;render()">'
+ +['全部','在养','终态'].map(s=>'<option '+(ui.archStatus===s?'selected':'')+'>'+s+'</option>').join('')+'</select>'
+ +'<select class="pg" onchange="ui.archStrain=this.value;render()">'
+ +['全部','C57BL/6J','BALB/c'].map(s=>'<option '+(ui.archStrain===s?'selected':'')+'>'+s+'</option>').join('')+'</select>'
+ +'<button class="btn primary" onclick="archNew()">＋ 新建档案</button></div>';
+ h+='<table><tr><th>mouse_id</th><th>性别</th><th>品系</th><th>日龄/月龄</th><th>基因型</th><th>笼位</th><th>计划</th><th>状态</th></tr>';
+ list.forEach(m=>{h+='<tr class="clickrow" onclick="archOpen(\''+m.id+'\')"><td><b>'+m.id+'</b></td><td>'+m.sex+'</td><td>'+m.strain+'</td><td>'+ageTxt(m.birth)+'</td>'
+  +'<td>'+genoBadge(m.geno)+'</td><td>'+(m.cage||'—')+'</td><td class="smaller">'+(m.plan?PLANS[m.plan].name:'—')+'</td><td>'+statusTag(m)+'</td></tr>';});
+ h+='</table><div class="smaller mut">共 '+Object.keys(M).length+' 只建档（演示仅列前 40 条）</div></div>';
+ return h;
+}
+function archOpen(id){ui.archId=id;if(ui.cur!=='arch')nav('arch');else render();}
+function archBack(){ui.archId=null;render();}
+function editMouseOpen(id){const m=M[id];ui.wiz={step:'editMouse',mid:id,sex:m.sex,strain:m.strain,birth:m.birth,source:m.source};renderModal();}
+function editMouseSubmit(){
+ const w=ui.wiz,m=M[w.mid];
+ const strain=(w.strain||'').trim(),birth=(w.birth||'').trim(),source=(w.source||'').trim();
+ if(!strain||!birth||!source){toast('品系 / 出生日期 / 来源均必填');return;}
+ const changes=[];
+ if(strain!==m.strain)changes.push(['品系',m.strain,strain]);
+ if(w.sex!==m.sex)changes.push(['性别',m.sex,w.sex]);
+ if(birth!==m.birth)changes.push(['出生日期',m.birth,birth]);
+ if(source!==m.source)changes.push(['来源',m.source,source]);
+ if(!changes.length){ui.wiz=null;renderModal();toast('无字段变更');return;}
+ m.strain=strain;m.sex=w.sex;m.birth=birth;m.source=source;
+ const desc=changes.map(c=>c[0]+'：'+c[1]+' → '+c[2]).join('；');
+ const hadDown=m.events.length>1||m.events[0].text.indexOf('初始建档')!==0;
+ m.events.push({t:TODAY+' '+NOWT,who:ui.user,text:'修改基础字段 · '+desc+(hadDown?'（已存在下游事件，属解锁修改）':''),cls:'amber'});
+ OPLOG.unshift({t:NOWT,text:m.id+' 修改基础字段：'+desc+' · '+ui.user});
+ ui.wiz=null;renderModal();render();toast('✓ 基础字段已更新（留痕）');
+}
+function archDetail(m){
+ const rec=DEATHS.find(r=>r.mid===m.id&&!r.revoked);
+ let h='<div class="pagehead"><h1>档案 · '+m.id+'</h1>'+statusTag(m)+'<button class="btn ghost" onclick="archBack()">← 返回列表</button></div>';
+ h+='<div class="grid2"><div>';
+ h+='<div class="card"><h3>身份信息</h3><div class="kv">'
+ +'<span class="k">品系</span><div>'+m.strain+'</div><span class="k">性别</span><div>'+m.sex+'</div>'
+ +'<span class="k">出生日期</span><div>'+(m.birth.startsWith('约')?'<span class="tag amber">约</span> '+m.birth.slice(2):m.birth)+'（'+ageTxt(m.birth)+'）</div>'
+ +'<span class="k">基因型</span><div>'+genoBadge(m.geno)+'</div>'
+ +'<span class="k">来源</span><div>'+m.source+'</div>'
+ +'<span class="k">所属笼位</span><div>'+(m.cage||'<span class="mut">已离笼</span>')+'</div>'
+ +'<span class="k">实验计划</span><div>'+(m.plan?PLANS[m.plan].name+'（'+m.plan+'）':'<span class="mut">未分配</span>')+'</div></div>';
+ if(m.status==='active'){
+  h+='<div><button class="btn danger" onclick="openDeath({mids:[\''+m.id+'\'],from:\'archive\',forceMode:\'quick\'})">快速登记死亡（初判）</button>'
+  +'<button class="btn danger" onclick="openDeath({mids:[\''+m.id+'\'],from:\'archive\',forceMode:\'full\'})">完整登记离群</button>'
+  +'<button class="btn" onclick="editMouseOpen(\''+m.id+'\')">修改基础字段</button></div>';
+ }
+ if(rec&&rec.pending)h+='<div class="banner b-amber">初判-待确认：责任人 48h 内完成归因 · <a style="cursor:pointer;color:var(--warn);" onclick="undoDeath('+DEATHS.indexOf(rec)+')">当日撤销本次登记</a> · <a style="cursor:pointer;color:var(--brand);" onclick="nav(\'home\');ui.attr=0;render()">去归因确认</a></div>';
+ if(rec&&!rec.pending&&rec.revocable&&m.status!=='active')h+='<div class="banner b-ok">「已用于实验」登记当日可撤销（全员）· <a style="cursor:pointer;color:var(--warn);" onclick="undoDeath('+DEATHS.indexOf(rec)+')">撤销</a></div>';
+ if(rec&&!rec.pending&&!rec.revocable&&m.status!=='active')h+='<div class="banner b-blue">完整死因直登的「'+rec.terminal+'」不可撤销（产品判断：死因明确、无误判空间）。</div>';
+ h+='</div></div><div>';
+ // 谱系
+ h+='<div class="card"><h3>谱系树 <span class="rt">以本鼠为中心 · 向上两代 / 向下两代</span></h3><div class="ped-tree-wrap">'+pedTree(m)+'</div></div>';
+ h+='</div></div>';
+ // 时间线
+ h+='<div class="card"><h3>时间线（倒序 · 只增不改 S-1）</h3><div class="timeline">';
+ const evs=[...m.events].reverse();
+ evs.forEach(e=>{h+='<div class="tl-item"><span class="tl-dot '+(e.cls||'')+'"></span><div><b>'+e.who+'</b> · '+e.t+'<br>'+e.text+'</div></div>';});
+ if(rec&&rec.pending&&rec.mode==='quick')h+='<div class="tl-item"><span class="tl-dot gray"></span><div class="mut">归因确认人：待'+(rec.plan?PLAN_OWNER[rec.plan]:'张老师（PI）')+'确认 · 48h 内（第二段占位，确认后追加）</div></div>';
+ h+='</div></div>';
+ return h;
+}
+function pedTree(m){
+ const fa=m.fa?M[m.fa]:null,mo=m.mo?M[m.mo]:null;
+ const pair=Object.entries(PAIRS).find(([k,p])=>(p.sire===m.id||p.dams.includes(m.id))&&p.status!=='已结束');
+ const mate=pair?(pair[1].sire===m.id?pair[1].dams[0]:pair[1].sire):null;
+ const lit=Object.values(LITTERS).find(L=>!L.weaned&&(L.sire===m.id||L.dam===m.id));
+ if(!fa&&!mo&&!mate&&!lit)return '<div class="mut small">暂无谱系数据（可从繁育对与窝次自动挂接）。</div>';
+ let h='';
+ if(fa||mo){h+='<div>'+(fa?pedNode(fa):'<span class="ped-node" style="opacity:.4;">父本未知</span>')+(mo?pedNode(mo):'<span class="ped-node" style="opacity:.4;">母本未知</span>')+'</div><div class="ped-line">└──────┬──────┘</div>';}
+ h+='<div>'+pedNode(m,true)+(mate?pedNode(M[mate]):'')+'</div>';
+ if(lit)h+='<div class="ped-line">└──┬──┘</div><div><span class="ped-node">窝次 '+lit.id+' · 存栏 '+lit.count+' 只<br><span style="font-size:11px;color:var(--amber);">'+(lit.weaned?'已断乳':'断乳提醒：'+Math.max(0,Math.round((new Date(weanDate(lit.birth))-new Date(TODAY))/86400000))+' 天后')+'</span></span></div>';
+ return h;
+}
+function pedNode(m,center){return '<span class="ped-node'+(center?' center':'')+'" '+(center?'':'onclick="archOpen(\''+m.id+'\')" style="cursor:pointer;"')+'><span class="sex '+(m.sex==='♂'?'m':'f')+'">'+m.sex+'</span> '+(center?'<strong>'+m.id+'</strong>':m.id)+'<br>'+genoBadge(m.geno)+'</span>';}
+function archNew(){
+ ui.wiz={step:'newArch',strain:'',sex:'♂',birth:'2026-06-01'};renderModal();
+}
+/* 新建档案走 modal */
+function renderModalNew(){
+ const w=ui.wiz;
+ return '<div class="b-blue banner">手动建档（必填字段见 PRD 3.2）</div>'
+ +'<span class="lbl">品系（手动输入）</span><div class="scanrow"><input type="text" id="naStrain" value="'+esc(w.strain||'')+'" placeholder="如 C57BL/6J、BALB/c、FVB/N …"></div>'
+ +'<span class="lbl">性别</span><div class="choice">'+['♂','♀'].map(s=>'<button class="'+(w.sex===s?'on':'')+'" onclick="ui.wiz.strain=document.getElementById(\'naStrain\').value;ui.wiz.sex=\''+s+'\';renderModal()">'+s+'</button>').join('')+'</div>'
+ +'<span class="lbl">出生日期（外购可填周龄反推并标记「约」）</span><div class="scanrow"><input type="date" id="naBirth" value="'+w.birth+'"></div>'
+ +'<button class="btn primary block" onclick="archNewSubmit()">建档（自动分配空笼位）</button>';
+}
+function archNewSubmit(){
+ const w=ui.wiz;const pos=firstEmpty();if(!pos){toast('无空笼位');return;}
+ const birthInput=$('naBirth');const birth=birthInput&&birthInput.value?birthInput.value:w.birth;
+ const strainInput=$('naStrain');const strain=(strainInput?strainInput.value:w.strain||'').trim();
+ if(!strain){toast('请填写品系');return;}
+ const id=nid();
+ CAGES[pos]={pos,kind:'普通',pairId:null,mice:[id],pups:null};
+ addMouse({id,sex:w.sex,strain,birth,geno:'待鉴定',cage:pos,source:'手动建档',
+  events:[{t:TODAY+' '+NOWT,who:ui.user,text:'手动建档 · 入笼 '+pos,cls:''}]});
+ OPLOG.unshift({t:NOWT,text:'新建档案 '+id+'（笼 '+pos+'）· '+ui.user});
+ ui.wiz=null;renderModal();ui.archId=id;render();toast('✓ 已建档 '+id);
+}
+
+/* ================= 基因型 FR-5 ================= */
+function genoLabel(r){
+ if(r.cre==='无效'||r.flox==='无效')return '无效';
+ if(r.cre==='待录入'||r.flox==='待录入')return '待录入';
+ const c=r.cre==='+'?'H':r.cre==='−'?'WT':r.cre;
+ const f=r.flox==='—'?'WT':r.flox==='flox/+'?'flox/H':r.flox;
+ return 'Cre'+c+'; '+f;
+}
+function pGeno(){
+ let h='<div class="pagehead"><h1>基因型鉴定</h1><span class="frtag">FR-5</span></div>'
+ +'<div class="pagedesc">送检 → 结果录入（点击结果格循环切换，模拟键盘速录 H/WT/±/F）→ 分笼辅助 · 「无效」不计入统计分母（S-7）</div>';
+ BATCHES.forEach(b=>{
+  h+='<div class="card"><h3>'+b.title+'<span class="tag '+(b.status.indexOf('待录入')>=0?'amber':'ok')+'">'+b.status+'</span>'
+  +'<span class="rt">有效 '+b.rows.filter(r=>genoLabel(r)!=='无效'&&genoLabel(r)!=='待录入').length+' / '+b.rows.length+'</span></h3>';
+  h+='<table><tr><th></th><th>鼠 ID</th><th>性别</th><th>Cre（点击切换）</th><th>flox（点击切换）</th><th>基因型</th><th>来源</th><th>目标笼</th></tr>';
+  b.rows.forEach(r=>{
+   const lab=genoLabel(r);
+   const canSel=lab!=='无效'&&lab!=='待录入'&&M[r.mid]&&M[r.mid].status==='active';
+   h+='<tr><td><input type="checkbox" '+(ui.gsel.has(r.mid)?'checked':'')+' '+(canSel?'':'disabled')+' onchange="gselToggle(\''+r.mid+'\')"></td>'
+   +'<td><b>'+r.mid+'</b></td><td>'+r.sex+'</td>'
+   +'<td class="gcell" onclick="gcell(\''+r.mid+'\',\'cre\')">'+genoCell(r.cre)+'</td>'
+   +'<td class="gcell" onclick="gcell(\''+r.mid+'\',\'flox\')">'+genoCell(r.flox)+'</td>'
+   +'<td>'+(lab==='无效'?'<span class="geno pend">无效-待重取</span>':lab==='待录入'?'<span class="geno pend">待录入</span>':genoBadge(lab))+'</td>'
+   +'<td class="smaller mut">'+r.src+'</td><td class="smaller">'+r.target+'</td></tr>';
+  });
+  h+='</table>';
+  if(b.status.indexOf('待分笼')>=0){
+   h+='<button class="btn primary" onclick="gmove(\''+b.id+'\')" '+(ui.gsel.size?'':'disabled')+'>将选中 '+ui.gsel.size+' 只按目标笼移入</button> '
+   +'<span class="smaller mut">勾选目标基因型 → 一键分配新笼并生成换笼记录。「无效」不可勾选（需重新取样）。</span>';
+  }
+  h+='</div>';
+ });
+ return h;
+}
+function genoCell(v){if(v==='+')return '<span class="geno pos">H</span>';if(v==='−')return '<span class="geno neg">WT</span>';
+ if(v==='±')return '<span class="geno pos">±</span>';if(v==='无效')return '<span class="geno pend">无效</span>';
+ if(v==='flox/+')return '<span class="geno pos">flox/H</span>';if(v==='flox/flox')return '<span class="geno pos">flox/flox</span>';
+ if(v==='—')return '<span class="geno neg">WT</span>';
+ return '<span class="geno pend">待录入</span>';}
+function gselToggle(mid){if(ui.gsel.has(mid))ui.gsel.delete(mid);else ui.gsel.add(mid);render();}
+function gcell(mid,f){
+ let b=BATCHES.find(b=>b.rows.some(r=>r.mid===mid));
+ const r=b.rows.find(r=>r.mid===mid);
+ const cyc=CYC[f];let i=cyc.indexOf(r[f]);if(i<0)i=0;
+ r[f]=cyc[(i+1)%cyc.length];
+ const lab=genoLabel(r);
+ if(M[mid]&&lab!=='待录入'){M[mid].geno=lab==='无效'?'无效':lab;}
+ if(lab!=='无效'&&lab!=='待录入'){
+  let closed=false;
+  TODOS.forEach(t=>{if(t.type==='鉴定'&&t.mid===mid&&!t.done){t.done=true;closed=true;}});
+  if(closed)toast('✓ 重新取样结果已录入 · 「待鉴定」待办自动关闭');
+ }
+ render();
+}
+function gmove(bid){
+ const b=BATCHES.find(x=>x.id===bid);
+ [...ui.gsel].forEach(mid=>{
+  const m=M[mid];if(!m)return;
+  const r=b?b.rows.find(r=>r.mid===mid):null;
+  let to=r&&r.target&&r.target!=='—'&&r.target!=='待重取'?r.target:firstEmpty();
+  if(m.cage&&CAGES[m.cage])CAGES[m.cage].mice=CAGES[m.cage].mice.filter(x=>x!==mid);
+  if(!CAGES[to])CAGES[to]={pos:to,kind:'普通',pairId:null,mice:[],pups:null};
+  CAGES[to].mice.push(mid);m.cage=to;
+  m.events.push({t:TODAY+' '+NOWT,who:ui.user,text:'按鉴定结果分笼 → '+to,cls:''});
+ });
+ OPLOG.unshift({t:NOWT,text:'基因型分笼：'+[...ui.gsel].join('、')+' · '+ui.user});
+ ui.gsel.clear();render();toast('✓ 已生成换笼记录（按鉴定结果分笼）');
+}
+
+/* ================= 实验计划 FR-7 ================= */
+function newPlan(){
+ ui.wiz={step:'newPlan'};renderModal();
+}
+function renderModalPlan(){
+ return '<div class="b-blue banner">新建伦理计划（FR-7）：编号全局唯一，批准数为伦理上限，实际用鼠数随终态登记自动回写。</div>'
+ +'<span class="lbl">伦理编号（必填，如 IACUC-2025-043）</span><div class="scanrow"><input type="text" id="npId" placeholder="IACUC-2025-043"></div>'
+ +'<span class="lbl">计划名称（必填）</span><div class="scanrow"><input type="text" id="npName" placeholder="如 炎症模型药效评价"></div>'
+ +'<span class="lbl">批准用鼠数（必填，只）</span><div class="scanrow"><input type="number" id="npCap" min="1" placeholder="如 40"></div>'
+ +'<span class="lbl">负责人</span><div class="choice" id="npOwner">'+USERS.map((s,i)=>'<button class="'+(i===0?'on':'')+'" onclick="document.querySelectorAll(\'#npOwner button\').forEach(b=>b.classList.remove(\'on\'));this.classList.add(\'on\')">'+s+'</button>').join('')+'</div>'
+ +'<button class="btn primary block" onclick="planSubmit()">创建计划</button>';
+}
+function planSubmit(){
+ const pid=($('npId').value||'').trim();
+ const name=($('npName').value||'').trim();
+ const cap=parseInt($('npCap').value,10);
+ const ownerBtn=document.querySelector('#npOwner button.on');
+ const owner=ownerBtn?ownerBtn.textContent:ui.user;
+ if(!pid){toast('请填写伦理编号');return;}
+ if(PLANS[pid]){toast('伦理编号已存在：'+pid);return;}
+ if(!name){toast('请填写计划名称');return;}
+ if(!cap||cap<1){toast('批准用鼠数须为正整数');return;}
+ PLANS[pid]={name,cap,used:0,owner,log:[]};
+ PLAN_OWNER[pid]=owner;
+ OPLOG.unshift({t:NOWT,text:'新建实验计划「'+name+'」（'+pid+'）· 批准 '+cap+' 只 · 负责人 '+owner+' · '+ui.user});
+ closeModal();if(ui.cur!=='plans')nav('plans');else render();
+ toast('✓ 计划 '+pid+' 已创建 · 可立即分配小鼠');
+}
+function pPlans(){
+ let h='<div class="pagehead"><h1>实验计划与伦理编号</h1><span class="frtag">FR-7</span><button class="btn primary" onclick="newPlan()">＋ 新建实验计划</button></div>'
+ +'<div class="pagedesc">实际用鼠数 = 已进入终态的小鼠数（含快速登记死亡），只读实时回写 · 90% 黄色预警 / 100% 阻断分配</div>';
+ h+='<div class="grid2">';
+ Object.entries(PLANS).forEach(([pid,p])=>{
+  const used=p.used,pct=Math.round(used/p.cap*1000)/10;
+  const blocked=used>=p.cap;
+  const aliveN=Object.values(M).filter(m=>m.status==='active'&&m.plan===pid).length;
+  const pend=pendCount(pid);
+  h+='<div class="card"><h3>'+p.name+'<span class="tag gray">伦理编号 '+pid+'</span>'
+  +(pct>=100?'<span class="tag red">⛔ 已达上限</span>':pct>=90?'<span class="tag amber">⚠ 90% 预警</span>':'<span class="tag ok">进行中</span>')+'</h3>';
+  h+='<div class="small mut">批准 '+p.cap+' 只 · 实际用鼠 <b style="color:'+(pct>=100?'var(--warn)':pct>=90?'var(--amber)':'var(--ink)')+'">'+used+' 只（'+pct+'%）</b> · 关联在养 '+aliveN+' 只'+(pend?' · <span class="tag amber">原因待确认 '+pend+'</span>':'')+'</div>';
+  h+='<div class="bar"><i class="'+(pct>=100?'':pct>=90?'amber':'')+'" style="width:'+Math.min(100,pct)+'%;'+(pct>=100?'background:var(--warn);':'')+'"></i></div>';
+  if(pct>=100)h+='<div class="banner b-red">⛔ 已达上限，新分配已阻断 · 需调整批准数（留痕）后继续</div>';
+  else if(pct>=90)h+='<div class="banner b-amber">⚠ 已达批准上限 90%，剩余额度 '+(p.cap-used)+' 只</div>';
+  p.log.forEach(l=>h+='<div class="smaller mut">留痕：'+l+'</div>');
+  h+='<div style="margin-top:8px;">';
+  h+=blocked?'<button class="btn" disabled>分配小鼠（已阻断）</button><button class="btn ghost" onclick="raiseCap(\''+pid+'\')">PI 调整批准数（留痕）</button>'
+   :'<button class="btn primary" onclick="togglePool(\''+pid+'\')">分配小鼠</button>';
+  h+='</div>';
+  if(ui.pool===pid&&!blocked){
+   const pool=Object.values(M).filter(m=>m.status==='active'&&!m.plan).slice(0,8);
+   h+='<div class="banner b-blue">选择未分配的在养小鼠（一只鼠同时只属于一个进行中计划）：</div>';
+   h+=pool.length?pool.map(m=>'<div class="radio-row">'+m.sex+' <b>'+m.id+'</b> <span class="mut smaller">'+m.strain+' · '+(m.cage||'')+'</span><button class="btn" style="margin-left:auto;" onclick="assign(\''+m.id+'\',\''+pid+'\')">分配</button></div>').join(''):'<div class="mut small">无未分配小鼠。</div>';
+  }
+  h+='</div>';
+ });
+ h+='</div>';
+ h+='<div class="demo-note">联动验证：给计划内的鼠登记死亡 → 用量 +1；快速登记未归因时本页出现「原因待确认」计数，归因确认后关闭（S-7 口径）。</div>';
+ return h;
+}
+function togglePool(pid){ui.pool=ui.pool===pid?null:pid;render();}
+function assign(mid,pid){
+ const m=M[mid];m.plan=pid;
+ m.events.push({t:TODAY+' '+NOWT,who:ui.user,text:'分配至计划「'+PLANS[pid].name+'」（'+pid+'）',cls:''});
+ render();toast('✓ 已分配（用量按终态回写，当前不增加）');
+}
+function raiseCap(pid){
+ const p=PLANS[pid];const old=p.cap;p.cap=p.cap+6;
+ p.log.push(TODAY+' '+ui.user+' 将批准上限 '+old+' → '+p.cap);
+ render();toast('✓ 批准上限已调整（留痕）· 阻断解除');
+}
+
+/* ================= 统计 FR-10 ================= */
+function pStats(){
+ const months=[...new Set(DEATHS.filter(r=>!r.revoked).map(r=>r.month))].sort().map(mo=>[mo,0]);
+ let h='<div class="pagehead"><h1>繁育与存活统计</h1><span class="frtag">FR-10 · S-7</span></div>'
+ +'<div class="pagedesc">只读聚合，无独立录入 · 数据来自终态记录与鉴定结果 · 快速登记未确认死因计入死亡率分子，死因构成单列「原因待确认」</div>';
+ // 1 死亡率
+ h+='<div class="card"><h3>1) 死亡率 <span class="rt">月度死亡率 = 当月死亡数 ÷ 当月平均在养数</span></h3><table><tr><th>月份</th><th>在养均值</th><th>死亡数</th><th>死亡率</th></tr>';
+ months.forEach(([mo,avg])=>{
+  const n=monthDeathCount(mo);
+  const rate=avg===0?'—':(n/avg*100).toFixed(1)+'%';
+  h+='<tr><td>'+mo+'</td><td>'+avg+'</td><td>'+n+'</td><td><b>'+rate+'</b></td></tr>';
+ });
+ if(!months.length)h+='<tr><td colspan="4" class="smaller mut">暂无终态记录</td></tr>';
+ h+='</table>';
+ const valid=DEATHS.map((r,i)=>({r,i})).filter(x=>!x.r.revoked);
+ const cats={};valid.forEach(({r})=>{const c=deathCat(r);cats[c]=(cats[c]||0)+1;});
+ h+='<div class="small">死因构成（全部终态记录 '+valid.length+' 条）：'
+ +Object.entries(cats).map(([c,n])=>'<span class="chip '+(c==='原因待确认'?'amber':'')+'">'+c+' '+Math.round(n/valid.length*1000)/10+'%</span>').join(' ')
+ +'（快速登记且未确认的单列，不与确认死因混算）</div>';
+ // 明细
+ h+='<div class="scanrow" style="margin-top:10px;"><select class="pg" onchange="ui.statStrain=this.value;render()">'
+ +['全部','C57BL/6J','BALB/c'].map(s=>'<option '+(ui.statStrain===s?'selected':'')+'>'+s+'</option>').join('')+'</select>'
+ +'<label class="smaller mut"><input type="checkbox" '+(ui.statPend?'checked':'')+' onchange="ui.statPend=this.checked;render()"> 仅看「原因待确认」</label></div>';
+ h+='<table><tr><th>日期</th><th>个体</th><th>品系</th><th>终态 / 死因</th><th>方式</th><th>计划</th><th>状态</th><th>操作</th></tr>';
+ const statRows=valid.filter(({r})=>(ui.statStrain==='全部'||r.strain===ui.statStrain)&&(!ui.statPend||r.pending)).slice(0,12);
+ if(!statRows.length)h+='<tr><td colspan="8" class="smaller mut">暂无终态记录</td></tr>';
+ statRows.forEach(({r,i})=>{
+  const canRevoke=r.revocable&&(r.pending||!r.confirmer);
+  h+='<tr><td>'+r.date+'</td><td>'+r.sex+' '+r.mid+'</td><td>'+r.strain+'</td>'
+  +'<td>'+r.terminal+' · '+r.cause+(r.pending?' <span class="tag amber">初判「'+r.initial+'」</span>':'')+'</td>'
+  +'<td>'+(r.mode==='quick'?'<span class="tag amber">快速登记</span>':'<span class="tag p0">完整登记</span>')+'</td>'
+  +'<td class="smaller">'+(r.plan?r.plan:'—')+'</td>'
+  +'<td>'+(r.pending?'<span class="tag amber">原因待确认</span>':r.confirmer?'<span class="tag ok">已归因（'+r.confirmer+'）</span>':'<span class="tag gray">正式</span>')+'</td>'
+  +'<td>'+(canRevoke?'<a style="cursor:pointer;color:var(--warn);" onclick="undoDeath('+i+')">误判撤回</a>':'<span class="smaller mut">—</span>')+'</td></tr>';
+ });
+ h+='</table><div class="smaller mut">除零保护：期间在养数为 0 时显示「—」。撤销的记录（误判复活）已从统计剔除。「误判撤回」仅快速登记 / 已用于实验且登记当日可撤回，撤回后鼠恢复在养、死亡率与伦理用量同步回退。</div></div>';
+ // 2 性别比（动态：ident 基线 + 实时鉴定叠加）
+ h+='<div class="grid2"><div class="card"><h3>2) 基因型性别比 <span class="rt">有效鉴定 × 建档性别</span></h3>';
+ h+='<table><tr><th>繁育对</th><th>基因型</th><th>公</th><th>母</th><th>占比</th></tr>';
+ let totalIdent=0,totalRows=0;
+ Object.entries(PAIRS).forEach(([bp,p])=>{
+  const cnt=pairCount(p);
+  const n=cnt.HE[0]+cnt.HE[1]+cnt.WT[0]+cnt.WT[1];
+  if(!n)return;
+  totalIdent+=n;
+  [['H（HE）',cnt.HE],['WT',cnt.WT]].forEach(([g,[mm,ff]])=>{
+   if(mm+ff===0)return;
+   totalRows++;
+   h+='<tr><td>'+bp+'</td><td>'+g+'</td><td>'+mm+'</td><td>'+ff+'</td><td>'+Math.round(mm/(mm+ff)*1000)/10+'% 公</td></tr>';
+  });
+ });
+ if(!totalRows)h+='<tr><td colspan="5" class="smaller mut">暂无有效鉴定数据</td></tr>';
+ h+='</table><div class="smaller mut">合计已鉴定 '+totalIdent+' 只（含基线历史鉴定与实时录入）· 鉴定「无效」不计入分母（S-7）。X 连锁传递或性别致死偏离可直接可见。</div></div>';
+ // 3 HE/WT（动态：偏离期望 1:1 相对偏差超 1/3 即预警）
+ h+='<div class="card"><h3>3) HE/WT 比例 · 孟德尔期望对比 <span class="rt">杂合×WT 期望 1:1</span></h3>';
+ let hwShown=0;
+ Object.entries(PAIRS).forEach(([bp,p])=>{
+  const cnt=pairCount(p);
+  const he=cnt.HE[0]+cnt.HE[1],wt=cnt.WT[0]+cnt.WT[1],n=he+wt;
+  if(!n)return;
+  hwShown++;
+  const pHE=Math.round(he/n*1000)/10;
+  const kind=(Math.abs(he/n-0.5)/0.5>1/3)?'warn':'ok';
+  const banner=kind==='warn'?'⚠ HE 占比 '+pHE+'%，偏离期望 50% 超过阈值（相对偏差 1/3）· 可能原因：纯合致死 / 鉴定错误 / 样本偏倚 · 建议核查送检记录（只提示不阻断）':'';
+  h+=hwCard('繁育对 '+bp+'（'+M[p.sire].geno+' × '+p.dams.map(d=>M[d]?M[d].geno:'?').join('/')+'）',n,he,wt,kind,banner);
+ });
+ if(!hwShown)h+='<div class="smaller mut">暂无有效鉴定数据</div>';
+ h+='</div></div>';
+ return h;
+}
+function pairCount(p){
+ const cnt={HE:[0,0],WT:[0,0]};
+ if(p.ident){cnt.HE=p.ident.HE.slice();cnt.WT=p.ident.WT.slice();}
+ pairOffspring(p).forEach(m=>{cnt[genoClass(m.geno)][m.sex==='♂'?0:1]++;});
+ return cnt;
+}
+function hwCard(title,n,he,wt,kind,banner){
+ const pHE=Math.round(he/n*1000)/10,pWT=Math.round(wt/n*1000)/10;
+ return '<div class="card" style="background:#fbfcfe;margin-bottom:10px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><b>'+title+'</b>'
+ +'<span class="tag '+(kind==='ok'?'ok':'amber')+'">'+(kind==='ok'?'✓ 符合期望':'⚠ 比例偏离')+'</span></div>'
+ +'<div class="small mut">已鉴定 '+n+' 只 · 期望 HE : WT = 1 : 1</div>'
+ +'<div class="small" style="margin-top:6px;">HE（H）· '+he+' 只 · '+pHE+'%</div><div class="bar"><i class="'+(kind==='warn'?'amber':'')+'" style="width:'+pHE+'%;"></i></div>'
+ +'<div class="small" style="margin-top:4px;">WT · '+wt+' 只 · '+pWT+'%</div><div class="bar"><i class="gray" style="width:'+pWT+'%;"></i></div>'
+ +(banner?'<div class="banner b-amber">'+banner+'</div>':'')+'</div>';
+}
+
+/* ================= 启动 ================= */
+render();
+document.querySelector('.side a').classList.add('on');
+</script>
+<script>
+/* PWA：注册 Service Worker，注册失败不影响页面正常使用 */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>

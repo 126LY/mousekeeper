@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鼠仓 MouseKeeper · 实验小鼠管理工作站 PRD v0.4</title>
+<style>
+  :root{
+    --ink:#1a2332; --sub:#5a6b80; --line:#e3e8ef; --bg:#f6f8fb;
+    --brand:#2f6fed; --brand-soft:#eaf1fe; --warn:#c0392b; --warn-soft:#fdecea;
+    --ok:#1e8e5a; --ok-soft:#e7f6ef; --amber:#b97d10; --amber-soft:#fdf3e0;
+    --card:#ffffff; --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+       color:var(--ink); background:var(--bg); line-height:1.75; font-size:15px;}
+  .layout{display:grid; grid-template-columns:250px 1fr; max-width:1240px; margin:0 auto;}
+  nav{position:sticky; top:0; height:100vh; overflow-y:auto; padding:32px 20px;
+      border-right:1px solid var(--line); background:var(--card);}
+  nav .logo{font-weight:700; font-size:18px; margin-bottom:4px;}
+  nav .ver{font-size:12px; color:var(--sub); margin-bottom:24px;}
+  nav a{display:block; padding:6px 10px; border-radius:6px; color:var(--sub);
+        text-decoration:none; font-size:13.5px;}
+  nav a:hover{background:var(--brand-soft); color:var(--brand);}
+  nav a.h2{font-weight:600; color:var(--ink); margin-top:14px;}
+  main{padding:48px 56px 120px; min-width:0;}
+  h1{font-size:30px; letter-spacing:.5px; margin-bottom:8px;}
+  .meta{color:var(--sub); font-size:13px; margin-bottom:24px;}
+  .meta span{margin-right:16px;}
+  h2{font-size:21px; margin:48px 0 16px; padding-top:12px; border-top:2px solid var(--line);}
+  h2:first-of-type{border-top:none;}
+  h3{font-size:16.5px; margin:28px 0 10px;}
+  h4{font-size:14.5px; margin:18px 0 8px; color:var(--sub);}
+  p{margin:10px 0;}
+  ul,ol{margin:8px 0 12px 22px;}
+  li{margin:4px 0;}
+  table{border-collapse:collapse; width:100%; margin:14px 0 20px; font-size:13.5px;
+        background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+  th{background:#eef2f7; text-align:left; padding:9px 12px; font-weight:600;
+     border-bottom:1px solid var(--line); white-space:nowrap;}
+  td{padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  code{font-family:var(--mono); font-size:12.5px; background:#eef2f7;
+       padding:2px 6px; border-radius:4px;}
+  .tag{display:inline-block; font-size:11.5px; font-weight:600; padding:2px 9px;
+       border-radius:20px; white-space:nowrap;}
+  .p0{background:var(--brand-soft); color:var(--brand);}
+  .p1{background:#eceff3; color:var(--sub);}
+  .assume{background:var(--amber-soft); color:var(--amber);}
+  .tbd{background:var(--warn-soft); color:var(--warn);}
+  .callout{border-left:3px solid var(--brand); background:var(--brand-soft);
+           padding:12px 16px; border-radius:0 8px 8px 0; margin:16px 0; font-size:14px;}
+  .callout.warn{border-color:var(--warn); background:var(--warn-soft);}
+  .callout.assume-box{border-color:var(--amber); background:var(--amber-soft);}
+  .demo{border:1px solid var(--line); border-radius:12px; background:var(--card);
+        margin:16px 0 24px; overflow:hidden;}
+  .demo-head{padding:10px 16px; border-bottom:1px solid var(--line); font-size:12.5px;
+             color:var(--sub); display:flex; justify-content:space-between; align-items:center;
+             background:#fafbfc;}
+  .demo-head .rid{font-family:var(--mono); color:var(--brand); font-weight:600;}
+  .demo-body{padding:20px; font-size:13.5px;}
+  .fr{border:1px solid var(--line); border-radius:12px; background:var(--card);
+      padding:20px 24px; margin:18px 0;}
+  .fr-head{display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap;}
+  .fr-id{font-family:var(--mono); font-weight:700; color:var(--brand); font-size:13px;}
+  .fr-name{font-weight:700; font-size:16px;}
+  .state-flow{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:12px 0; font-size:13px;}
+  .state{padding:4px 12px; border-radius:16px; background:#eef2f7; font-weight:600; white-space:nowrap;}
+  .state.cur{background:var(--brand); color:#fff;}
+  .state.dead{background:#dfe3e8; color:var(--sub); text-decoration:line-through;}
+  .arrow{color:var(--sub);}
+  /* FR-8a demo widgets */
+  .role-tabs{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap;}
+  .role-tabs button{border:1.5px solid var(--line);background:#fff;border-radius:22px;
+       padding:6px 16px;font-size:13px;cursor:pointer;color:var(--sub);}
+  .role-tabs button.on{border-color:var(--brand);color:var(--brand);font-weight:600;background:var(--brand-soft);}
+  .scene8a{display:none;} .scene8a.show{display:block;}
+  .frame-row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+  .phone{width:330px;background:#fff;border:1.5px solid var(--line);border-radius:24px;
+         padding:14px 14px 18px;box-shadow:0 8px 24px rgba(26,35,50,.06);flex-shrink:0;}
+  .phone .notch{width:90px;height:5px;border-radius:3px;background:#dfe3e8;margin:0 auto 12px;}
+  .screen8a{display:none;} .screen8a.show{display:block;}
+  .snav{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px;color:var(--sub);}
+  .snav .back{cursor:pointer;color:var(--brand);}
+  .explain{flex:1;min-width:280px;font-size:13px;}
+  .explain h5{font-size:14px;margin-bottom:8px;}
+  .explain .step{display:flex;gap:10px;margin:10px 0;font-size:13px;}
+  .explain .step .n{width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;
+      font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+  .note{border-left:3px solid var(--amber);background:var(--amber-soft);padding:10px 14px;
+        border-radius:0 8px 8px 0;font-size:12.5px;margin-top:14px;}
+  .note.blue{border-color:var(--brand);background:var(--brand-soft);}
+  .note.red{border-color:var(--warn);background:var(--warn-soft);}
+  .card8a{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;background:#fff;}
+  .card8a .row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+  .chip{display:inline-block;font-size:11px;padding:1px 8px;border-radius:12px;background:#eef2f7;margin:1px 2px;white-space:nowrap;}
+  .chip.m{background:var(--brand-soft);color:var(--brand);font-weight:600;}
+  .chip.f{background:#fdeef6;color:#c2437f;font-weight:600;}
+  .chip.amber{background:var(--amber-soft);color:var(--amber);font-weight:600;}
+  .chip.red{background:var(--warn-soft);color:var(--warn);font-weight:600;}
+  .chip.ok{background:var(--ok-soft);color:var(--ok);font-weight:600;}
+  .banner{padding:8px 12px;border-radius:8px;font-size:12px;margin:8px 0;}
+  .b-amber{background:var(--amber-soft);color:var(--amber);}
+  .b-red{background:var(--warn-soft);color:var(--warn);}
+  .b-blue{background:var(--brand-soft);color:var(--brand);}
+  .b-ok{background:var(--ok-soft);color:var(--ok);}
+  .choice{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px;}
+  .choice button{border:1.5px solid var(--line);background:#fff;border-radius:16px;
+      padding:5px 13px;font-size:12.5px;cursor:pointer;color:var(--ink);}
+  .choice button.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:600;}
+  .choice.danger button.on{border-color:var(--warn);background:var(--warn-soft);color:var(--warn);}
+  .field{font-size:12.5px;margin:8px 0;}
+  .field .lb{color:var(--sub);font-size:11.5px;display:block;margin-bottom:3px;}
+  .field .val{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:#fafbfc;}
+  .btn{display:inline-block;border:1px solid var(--brand);color:var(--brand);background:#fff;
+      padding:5px 14px;border-radius:6px;font-size:12.5px;cursor:pointer;margin:4px 4px 0 0;}
+  .btn.primary{background:var(--brand);color:#fff;}
+  .btn.danger{border-color:var(--warn);color:var(--warn);}
+  .btn.block{display:block;width:100%;text-align:center;margin-top:10px;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .radio-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 10px;
+      border:1px solid var(--line);border-radius:8px;margin:5px 0;cursor:pointer;}
+  .radio-row.on{border-color:var(--brand);background:var(--brand-soft);}
+  .radio-row.red.on{border-color:var(--warn);background:var(--warn-soft);}
+  .timeline{font-size:12px;margin-top:8px;}
+  .tl-item{display:flex;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);}
+  .tl-item:last-child{border-bottom:none;}
+  .tl-dot{width:8px;height:8px;border-radius:50%;background:var(--brand);margin-top:6px;flex-shrink:0;}
+  .tl-dot.amber{background:var(--amber);} .tl-dot.ok{background:var(--ok);} .tl-dot.red{background:var(--warn);}
+  .todo8a{border:1px solid var(--amber);background:var(--amber-soft);border-radius:10px;
+      padding:10px 12px;margin:8px 0;cursor:pointer;font-size:12.5px;}
+  .toast{display:none;padding:9px 12px;border-radius:8px;background:var(--ok-soft);color:var(--ok);
+      font-size:12.5px;font-weight:600;margin-top:10px;}
+  .toast.show{display:block;}
+  .photo-ph{border:1.5px dashed var(--line);border-radius:10px;padding:16px;text-align:center;
+      color:var(--sub);font-size:12px;cursor:pointer;}
+  .lbl{font-size:11.5px;color:var(--sub);font-weight:600;margin:10px 0 2px;display:block;}
+  .desk8a{border:1px solid var(--line);border-radius:14px;background:#fff;padding:16px 18px;flex:1;min-width:300px;}
+  /* mock styles (原 v0.1) */
+  .rack{display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin:14px 0;}
+  .cell{aspect-ratio:1.4; border:1.5px solid var(--line); border-radius:8px; display:flex;
+        flex-direction:column; align-items:center; justify-content:center; font-size:11px;
+        cursor:pointer; transition:all .15s; background:#fff; user-select:none;}
+  .cell:hover{border-color:var(--brand);}
+  .cell.occ{border-color:var(--brand); background:var(--brand-soft);}
+  .cell.warn-cell{border-color:var(--amber); background:var(--amber-soft);}
+  .cell.sel{outline:2px solid var(--brand); outline-offset:1px;}
+  .cell .cid{font-weight:700; font-size:12px;}
+  .cell .cnt{color:var(--sub);}
+  .panel{border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-top:12px;
+         background:#fbfcfe; display:none;}
+  .panel.show{display:block;}
+  .panel h5{font-size:13px; margin-bottom:6px;}
+  .geno{font-family:var(--mono); font-size:12px; padding:2px 8px; border-radius:4px; font-weight:700;}
+  .geno.pos{background:var(--ok-soft); color:var(--ok);}
+  .geno.neg{background:#eef2f7; color:var(--sub);}
+  .geno.pend{background:var(--amber-soft); color:var(--amber);}
+  .confirm-box{display:none; border:1.5px solid var(--warn); background:var(--warn-soft);
+               border-radius:10px; padding:14px 16px; margin-top:12px;}
+  .confirm-box.show{display:block;}
+  .reason{margin-top:8px;}
+  .reason label{font-size:12.5px; display:block; margin:4px 0; cursor:pointer;}
+  .tabs{display:flex; gap:0; border-bottom:1.5px solid var(--line); margin-bottom:14px;}
+  .tabs button{border:none; background:none; padding:8px 16px; font-size:13px; cursor:pointer;
+               color:var(--sub); border-bottom:2px solid transparent; margin-bottom:-1.5px;}
+  .tabs button.on{color:var(--brand); border-color:var(--brand); font-weight:600;}
+  .tabpane{display:none;} .tabpane.show{display:block;}
+  .ped-node{display:inline-block; border:1.5px solid var(--line); border-radius:8px;
+            padding:6px 10px; margin:4px; font-size:12px; background:#fff; text-align:center; min-width:88px;}
+  .ped-node .sex{font-weight:700;}
+  .ped-node .sex.m{color:var(--brand);} .ped-node .sex.f{color:#c2437f;}
+  .ped-line{text-align:center; color:var(--sub); font-size:16px; line-height:1.2;}
+  .mock-card{border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:10px 0; background:#fff;}
+  .mock-card .row{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .banner2{display:none; padding:8px 12px; border-radius:6px; margin:8px 0; font-size:12.5px;}
+  .banner2.show{display:block;}
+  .banner2.b-amber{background:var(--amber-soft); color:var(--amber); font-weight:600;}
+  .banner2.b-red{background:var(--warn-soft); color:var(--warn); font-weight:600;}
+  @media (max-width:900px){ .layout{grid-template-columns:1fr;} nav{display:none;} main{padding:24px;} }
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div class="logo">鼠仓 MouseKeeper</div>
+  <div class="ver">PRD v0.4 · 评审稿</div>
+  <a class="h2" href="#s1">1. 背景与目标</a>
+  <a class="h2" href="#s2">2. 范围</a>
+  <a class="h2" href="#s3">3. 产品模型</a>
+  <a href="#s3-1">3.1 角色与成员</a>
+  <a href="#s3-2">3.2 核心对象</a>
+  <a href="#s3-3">3.3 笼位模型</a>
+  <a class="h2" href="#s4">4. 功能需求</a>
+  <a href="#fr1">FR-1 笼架与笼位看板</a>
+  <a href="#fr2">FR-2 小鼠档案</a>
+  <a href="#fr3">FR-3 扫码工作台</a>
+  <a href="#fr4">FR-4 繁育与谱系</a>
+  <a href="#fr5">FR-5 基因型鉴定</a>
+  <a href="#fr6">FR-6 繁育任务提醒</a>
+  <a href="#fr7">FR-7 实验计划与伦理编号</a>
+  <a href="#fr8">FR-8 安乐死与离群记录</a>
+  <a href="#fr8a">FR-8a 死亡快速登记与归因确认</a>
+  <a href="#fr9">FR-9 盘点对账</a>
+  <a href="#fr10">FR-10 繁育与存活统计</a>
+  <a class="h2" href="#s5">5. 共享规则</a>
+  <a class="h2" href="#s6">6. 开放问题</a>
+</nav>
+<main>
+
+<h1>鼠仓 MouseKeeper — 实验小鼠管理工作站</h1>
+<div class="meta">
+  <span>文档类型：产品需求文档（PRD）</span><span>版本：v0.4 评审稿</span><span>适用：单 PI 课题组 · 几十至数百笼</span><span>形态：Web 应用（移动端浏览器适配扫码）</span>
+</div>
+<div class="callout">
+  <strong>v0.4 变更记录：</strong>新增 <a href="#fr10">FR-10 繁育与存活统计</a>：月度死亡率（按品系/月龄段/死因下钻）、基因型性别比、HE/WT 比例与孟德尔偏离预警；新增共享规则 S-7 统一统计口径。<br>
+  <strong>v0.3 变更记录：</strong>移除角色权限体系，改为无权限限制——3.1 改为「角色与成员」（角色仅作身份标识用于留痕与待办路由）；FR-3 死亡登记不再按角色分流；FR-8a 由「管理员代登记」改为全员可用的「快速登记 + 归因确认」模式；撤销规则改为当日留痕撤销，不限定操作人。<br>
+  <strong>v0.2 变更记录：</strong>新增 <a href="#fr8a">FR-8a 管理员代登记死亡</a>（含三场景交互演示）；同步修订 3.1 权限矩阵、FR-3 扫码分流、FR-7 用量口径、FR-8 撤销规则、共享规则 S-1；原开放问题「管理员是否需要代登记死亡权限」已由本版设计解决并移除。
+</div>
+
+<!-- ============ 1 ============ -->
+<h2 id="s1">1. 背景与目标</h2>
+<p>小型实验室的小鼠管理普遍依赖纸质笼卡 + Excel：研究生换笼时手抄笼号，繁育对的合笼、断乳日期记在个人备忘录里，基因型鉴定结果以文件名混乱的 PDF 散落在群里。可观察的后果是：找不到某只鼠的父本母本、错过断乳日龄导致同笼打架、伦理年审时花数天从 Excel 反推实际用鼠数量。</p>
+<p>本产品面向单 PI 课题组（1 名 PI、数名研究生/博士后、共享的动物房管理员），提供一个以小鼠个体档案为中心、以笼位视图为工作台、以扫码为现场操作入口的轻量管理系统。</p>
+<p><strong>目标（可观察表述）：</strong></p>
+<ul>
+  <li>任意一只在养小鼠，10 秒内可从笼位图或扫码定位到其档案、谱系和所属实验计划；</li>
+  <li>每一窝仔鼠在断乳日龄到达前自动生成提醒，不出现"靠人脑记"的环节；</li>
+  <li>任意时间点，系统可按伦理编号导出实际用鼠数量与死亡记录（含死因确认状态），无需人工对账；</li>
+  <li>换笼、分笼、死亡登记等现场操作可在手机浏览器上扫码完成，巡查中发现的死亡可即时快速登记，尸体不因流程等待而滞留笼内。</li>
+</ul>
+<div class="callout assume-box"><strong>约束：</strong>小团队低预算 —— 单实例部署、单实验室租户，无多机构权限体系；Web 优先，不开发原生 App；扫码依赖手机浏览器摄像头，不要求专用扫码枪。<span class="tag assume">Assumption, TBD</span></div>
+
+<!-- ============ 2 ============ -->
+<h2 id="s2">2. 范围</h2>
+<h3>P0（本次必须完成，构成最小完整旅程）</h3>
+<p>最小完整旅程定义：<strong>新鼠入库建档 → 日常换笼/观察（扫码）→ 繁育记录与断乳提醒 → 基因型鉴定 → 分配至实验计划 → 死亡/安乐死离群（完整登记或快速登记）</strong>。支撑该旅程的模块：</p>
+<table>
+  <tr><th>ID</th><th>模块</th><th>一句话能力</th><th>优先级</th></tr>
+  <tr><td>FR-1</td><td>笼架与笼位看板</td><td>房间-笼架-笼位三级可视化，一眼看到每笼状态</td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td>FR-2</td><td>小鼠个体档案</td><td>唯一 ID、品系、性别、出生日期、状态全生命周期</td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td>FR-3</td><td>扫码工作台</td><td>手机扫笼卡/鼠标二维码，现场完成换笼、观察、死亡登记</td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td>FR-4</td><td>繁育与谱系</td><td>繁育对管理、窝次记录、自动推算断乳/分笼日期、谱系树</td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td>FR-5</td><td>基因型鉴定管理</td><td>送检登记、结果录入、按鉴定结果筛选分笼</td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td>FR-6</td><td>繁育任务提醒</td><td>断乳、分笼、超龄等规则驱动的待办</td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td>FR-7</td><td>实验计划与伦理编号</td><td>按伦理编号建计划、分配小鼠、自动核算实际用鼠数</td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td>FR-8</td><td>安乐死与离群记录</td><td>合规原因必填、数量自动回写、当日撤销留痕</td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td>FR-8a</td><td>死亡快速登记与归因确认</td><td>事实即时生效、死因归因 48h 闭环、双操作人留痕</td><td><span class="tag p0">P0</span></td></tr>
+</table>
+<h3>P1（支撑项，P0 稳定后迭代）</h3>
+<ul>
+  <li>FR-9 盘点对账：扫码批量盘点，生成"系统账面 vs 实际在笼"差异清单；</li>
+  <li>FR-10 繁育与存活统计：月度死亡率、基因型性别比、HE/WT 比例与孟德尔偏离预警（详见 FR-10）；</li>
+  <li>笼卡二维码批量打印排版；</li>
+  <li>按伦理编号的用量报表导出（CSV）；</li>
+  <li>笼位占用与动物房计费的对账字段。</li>
+</ul>
+<h3>明确排除（避免评审分歧）</h3>
+<ul>
+  <li>不做法规全文意义上的 IACUC 在线审批流 —— 系统只<strong>关联</strong>伦理编号，不替代机构伦理委员会的审批系统；</li>
+  <li>不做环境监测（温湿度、氨浓度传感器接入）；</li>
+  <li>不做多实验室/多租户 SaaS 化与跨机构数据隔离；</li>
+  <li>不做采购、库存（饲料垫料）管理；</li>
+  <li>不做大鼠、斑马鱼等其他物种（字段模型按小鼠设计，物种扩展不在本期）。</li>
+</ul>
+
+<!-- ============ 3 ============ -->
+<h2 id="s3">3. 产品模型</h2>
+<h3 id="s3-1">3.1 角色与成员（无权限限制）</h3>
+<p>系统<strong>不设权限限制</strong>：PI、研究生/博士后、动物房管理员三种角色仅作为<strong>身份标识</strong>，用于时间线留痕、待办指派与展示口径。所有成员可执行全部操作——建档、换笼、繁育、送检、计划管理、终态登记与撤销、成员与房间笼架结构管理。</p>
+<div class="callout">产品判断：小课题组全员互信场景下，权限管控的维护成本高于其风险收益。数据安全以<strong>全量操作留痕（S-1）</strong>作为补偿控制——任何操作可追溯到具体的人与时间，足以支撑内部问责与伦理审计。角色保留的价值在于待办路由（如死亡归因确认通知分配人），而非授权。</div>
+
+<h3 id="s3-2">3.2 核心对象与状态机</h3>
+<h4>小鼠（Mouse）</h4>
+<div class="state-flow">
+  <span class="state cur">在养 Active</span><span class="arrow">→</span>
+  <span class="state">已用于实验 Sacrificed</span>
+  <span class="state dead">自然死亡 Dead</span>
+  <span class="state dead">淘汰 Culled</span>
+  <span class="arrow" style="margin-left:12px">（三态并列为终态；终态原则上不可回退，仅两类当日撤销例外，见 FR-8 / FR-8a）</span>
+</div>
+<table>
+  <tr><th>字段</th><th>类型/规则</th><th>必填</th></tr>
+  <tr><td>mouse_id</td><td>系统生成，规则 <code>MK-年份-序号</code>（MK-2026-0183），全系统唯一，即二维码内容</td><td>是</td></tr>
+  <tr><td>品系 strain</td><td>自由文本 + 常用品系字典（C57BL/6J、BALB/c…），允许课题组自建</td><td>是</td></tr>
+  <tr><td>性别</td><td>公 / 母</td><td>是</td></tr>
+  <tr><td>出生日期</td><td>日期；购入鼠可填周龄由系统反推近似值并标记"约"</td><td>是</td></tr>
+  <tr><td>基因型</td><td>本实验室内部命名；可多值（如 <code>Cre+; flox/flox</code>）</td><td>否（未鉴定时为"待鉴定"）</td></tr>
+  <tr><td>耳标/标记</td><td>耳缺编码、耳标号或"无"</td><td>否</td></tr>
+  <tr><td>来源</td><td>本室繁育（关联窝次）/ 外购（供应商+批号）</td><td>是</td></tr>
+  <tr><td>所属笼位</td><td>任一时刻至多一个；操作留历史</td><td>是（在养时）</td></tr>
+  <tr><td>所属实验计划</td><td>可空；关联伦理编号</td><td>否</td></tr>
+  <tr><td>状态 + 终态日期/原因</td><td>见状态机；快速登记死亡的终态原因带「初判-待确认」标记直至归因确认（FR-8a）</td><td>是</td></tr>
+</table>
+<h4>窝次（Litter）</h4>
+<p>一胎仔鼠为一个窝次，是断乳/分笼提醒与未断乳仔鼠数量修正的计算单元：出生日期、母本、父本（可多只，见 FR-4）、存栏数（可因死亡修正扣减，见 FR-8a 边界场景）、断乳日期（出生 + 21 天，可改，见共享规则 S-2）。</p>
+<h4>繁育对（BreedingPair）</h4>
+<div class="state-flow"><span class="state cur">合笼中</span><span class="arrow">→</span><span class="state">已分笼（发现栓/临产）</span><span class="arrow">→</span><span class="state">已结束</span></div>
+<h4>实验计划（Project）</h4>
+<div class="state-flow"><span class="state cur">进行中</span><span class="arrow">→</span><span class="state">已完成</span><span class="state dead">已中止</span></div>
+<p>关键字段：<strong>伦理编号</strong>（必填，唯一约束放宽规则见 S-4）、批准用鼠上限、实际用鼠数（系统由"分配且进入终态"的小鼠数自动累加，含快速登记死亡，口径一致，只读）、起止日期。</p>
+
+<h3 id="s3-3">3.3 笼位模型</h3>
+<p>三级结构：<strong>房间 Room → 笼架 Rack → 笼位 CagePosition</strong>。笼架为行列网格（如 5×6），每个笼位有坐标（R3-C2）。笼位非对象实体，<strong>笼子（Cage）才是实体</strong>：一个笼子占一个笼位，含若干小鼠，笼卡二维码 = 笼子 ID。笼子可整体移动到空笼位（换笼/腾笼操作），小鼠不可同时属于两个笼子。</p>
+<div class="callout">产品判断：以"笼"而非"鼠"为扫码主入口 —— 现场 90% 的操作（换笼、观察、记录死亡）以笼为单位发生，鼠级二维码（耳标）仅在需要定位单只时使用。</div>
+
+<!-- ============ 4 ============ -->
+<h2 id="s4">4. 功能需求</h2>
+
+<!-- FR-1 -->
+<div class="fr" id="fr1">
+  <div class="fr-head"><span class="fr-id">FR-1</span><span class="fr-name">笼架与笼位看板</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>研究员进入动物房前，在浏览器上即看到所有房间笼位占用、每笼鼠数与待办标记，替代"挨个掀笼卡"。</p>
+  <p><strong>触发：</strong>任何成员打开"笼位"页，选择房间与笼架。</p>
+  <p><strong>处理规则：</strong></p>
+  <ul>
+    <li>笼位格显示：笼号、在养鼠数；鼠标悬停/点按展开笼详情面板；</li>
+    <li>笼格颜色语义：空笼 = 白；正常 = 蓝边；<strong>有未完成提醒</strong>（待断乳/待分笼/待鉴定）= 黄边黄底；</li>
+    <li>选中空笼位可发起"放入新笼"；选中占用笼可发起"移动笼子到空位"；</li>
+    <li>笼详情面板列出每只鼠：ID、性别（公蓝/母粉）、日龄、基因型徽标、状态标记。</li>
+  </ul>
+  <p><strong>结果与状态变化：</strong>移动笼子即时持久化并写入笼位历史（笼子 X 于 T 时刻从 A1 移至 B4，操作人 Y）。</p>
+  <div class="demo">
+    <div class="demo-head"><span>交互演示 · 笼位看板（点击笼格）</span><span class="rid">FR-1</span></div>
+    <div class="demo-body">
+      <div style="font-size:12.5px;color:var(--sub);margin-bottom:8px;">房间 A · 笼架 R1（5×6）· 黄底 = 有待办</div>
+      <div class="rack" id="rack1"></div>
+      <div class="panel" id="panel1">
+        <h5 id="panel1-title"></h5>
+        <div id="panel1-body"></div>
+        <div id="panel1-actions"></div>
+        <div class="toast" id="toast1"></div>
+      </div>
+    </div>
+  </div>
+  <p><strong>异常：</strong>目标笼位已被占用时移动按钮置灰并提示"该笼位已占用"；笼架无数据时显示空态引导"先创建房间与笼架结构"。</p>
+</div>
+
+<!-- FR-2 -->
+<div class="fr" id="fr2">
+  <div class="fr-head"><span class="fr-id">FR-2</span><span class="fr-name">小鼠个体档案</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>每只鼠一页档案，聚合身份、谱系、鉴定、所属计划与操作历史，是全局检索与扫码跳转的落点。</p>
+  <p><strong>触发：</strong>建档（手动录入 / 从窝次批量生成仔鼠档案）、笼位面板点击鼠 ID、扫码跳转。</p>
+  <p><strong>处理规则：</strong></p>
+  <ul>
+    <li>手动建档：必填字段见 3.2 表；外购鼠允许填"周龄"反推出生日期并标记 <code>约</code>；</li>
+    <li>从窝次生成：选择窝次 → 按<strong>存栏数（经数量修正后）</strong>输入公/母数量 → 批量生成档案，自动继承父母本品系、出生日期=窝次出生日期、初始笼位=繁殖笼；</li>
+    <li>档案页时间线倒序展示全部事件：换笼、鉴定、配种参与、计划分配、终态（含快速登记死亡的两段留痕，见 FR-8a）；</li>
+    <li>检索支持 mouse_id 精确、品系/基因型/计划/状态组合筛选。</li>
+  </ul>
+  <p><strong>字段可编辑性：</strong>出生日期、性别、来源在存在下游事件（鉴定、繁育）后锁定，可解锁修改（留痕）；终态小鼠档案整体只读。</p>
+  <p><strong>异常：</strong>删除档案仅允许"无任何下游事件且建档 24h 内"的情形，二次确认后执行；其余情况以"淘汰"终态替代删除，保证谱系不断链。</p>
+</div>
+
+<!-- FR-3 -->
+<div class="fr" id="fr3">
+  <div class="fr-head"><span class="fr-id">FR-3</span><span class="fr-name">扫码工作台</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>换笼间里戴手套不方便打字 —— 手机扫笼卡二维码后，三步内完成当日现场操作。</p>
+  <p><strong>触发：</strong>手机浏览器进入"扫码"页调起摄像头；扫出笼 ID 或鼠 ID。</p>
+  <p><strong>扫出笼子后的操作面板（按频次排序）：</strong></p>
+  <ol>
+    <li><strong>快速换笼</strong>：扫新笼位或从空位列表选择 → 确认；</li>
+    <li><strong>观察记录</strong>：选择预设项（正常/精神差/打斗受伤/死亡）+ 可选备注；选"死亡"→ 进入 FR-8 登记流程：死因已知时直接选择完整死因枚举；现场无法判断时选用<strong>快速登记</strong>（初判 + 归因确认，见 FR-8a）；</li>
+    <li><strong>产仔登记</strong>（繁殖笼专属入口）：输入仔鼠数与出生日期 → 生成窝次；</li>
+    <li><strong>查看本笼待办</strong>：跳转 FR-6 该笼的未完成提醒。</li>
+  </ol>
+  <p><strong>结果与反馈：</strong>每次操作返回绿色成功条并震动一次（<span class="tag assume">Assumption, TBD</span>：目标机型支持浏览器震动 API）；连续扫码模式下成功条 1.5 秒后自动回到摄像头，支持不换页连续处理多笼。</p>
+  <p><strong>异常：</strong>扫出未注册 ID → 提供"以此 ID 现场建档"入口；摄像头不可用（权限拒绝/老旧浏览器）→ 降级为手动输入笼号；网络中断 → 操作进入本地待同步队列并在顶部显示"待同步 N 条"，恢复后自动重传（防换笼间信号死角丢数据）。</p>
+</div>
+
+<!-- FR-4 -->
+<div class="fr" id="fr4">
+  <div class="fr-head"><span class="fr-id">FR-4</span><span class="fr-name">繁育对与窝次谱系</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>谁和谁配、哪天合的笼、仔鼠哪天该断乳、祖代是谁 —— 全部可追，替代研究生个人备忘录。</p>
+  <p><strong>触发：</strong>创建繁育对（选 1 公 + 1~2 母 <span class="tag assume">Assumption, TBD</span>：支持 1 公 2 母合繁）；产仔登记；分笼/结束繁育对。</p>
+  <p><strong>处理规则：</strong></p>
+  <ul>
+    <li>繁育对要求参与者均为在养、未处于另一"合笼中"繁育对；</li>
+    <li>产仔登记后生成窝次 L-编号，仔鼠档案按 FR-2 批量生成，谱系自动挂接父母；</li>
+    <li>1 公 2 母笼内产仔时，母本归属允许标记"不确定"，谱系树中该窝母本显示"母A 或 母B"，待基因型鉴定后可人工确认修正；</li>
+    <li>谱系视图：以任意鼠为中心，向上两代、向下两代渲染谱系树；点击节点跳转档案；</li>
+    <li>近交提示：所选公母在谱系树两代内存在共同祖先时，创建繁育对页面显示黄色提示（不阻断，仅提示）。</li>
+  </ul>
+  <div class="demo">
+    <div class="demo-head"><span>交互演示 · 谱系树（以 MK-2026-0201 为中心）</span><span class="rid">FR-4</span></div>
+    <div class="demo-body" style="text-align:center;">
+      <div>
+        <span class="ped-node"><span class="sex m">♂</span> MK-2025-0041<br><span class="geno pos">Cre+</span></span>
+        <span class="ped-node"><span class="sex f">♀</span> MK-2025-0058<br><span class="geno neg">flox/flox</span></span>
+      </div>
+      <div class="ped-line">└──────┬──────┘</div>
+      <div>
+        <span class="ped-node" style="border-color:var(--brand);outline:2px solid var(--brand-soft);"><span class="sex m">♂</span> <strong>MK-2026-0201</strong><br><span class="geno pos">Cre+; flox/+</span></span>
+        <span class="ped-node"><span class="sex f">♀</span> MK-2026-0202<br><span class="geno pend">待鉴定</span></span>
+      </div>
+      <div class="ped-line">└──┬──┘</div>
+      <div><span class="ped-node" style="opacity:.75;">窝次 L-051 · 存栏 4 只<br><span style="font-size:11px;color:var(--amber);">断乳提醒：3 天后</span></span></div>
+    </div>
+  </div>
+  <p><strong>异常：</strong>参与繁育的任一方进入终态时，其"合笼中"繁育对自动置为"已结束"并生成一条提醒通知创建人。</p>
+</div>
+
+<!-- FR-5 -->
+<div class="fr" id="fr5">
+  <div class="fr-head"><span class="fr-id">FR-5</span><span class="fr-name">基因型鉴定管理</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>把"送检-回收结果-按结果分笼"从 Excel 三张表合并成一条流水线。</p>
+  <p><strong>流程：</strong>从窝次或筛选结果勾选小鼠 → 生成送检批（检测项目如 <code>Cre PCR</code>，系统生成送检清单含鼠 ID 与取样要求）→ 结果回收时逐条录入阳性/阴性/杂合/无效 → 档案基因型更新、谱系同步、"待鉴定"提醒关闭。</p>
+  <p><strong>处理规则：</strong></p>
+  <ul>
+    <li>结果录入支持按送检清单顺序的键盘速录模式（+/-/±/F 四键）；</li>
+    <li>"无效"结果自动重新挂入该鼠待办"需重新取样鉴定"；</li>
+    <li>分笼辅助视图：同一窝次按鉴定结果分组列出，勾选目标基因型 → 一键分配新笼并生成换笼操作记录。</li>
+  </ul>
+  <div class="demo">
+    <div class="demo-head"><span>静态示意 · 分笼辅助视图</span><span class="rid">FR-5</span></div>
+    <div class="demo-body">
+      <table style="margin:0;">
+        <tr><th></th><th>鼠 ID</th><th>性别</th><th>Cre</th><th>flox</th><th>目标笼</th></tr>
+        <tr style="background:var(--ok-soft);"><td>☑</td><td>MK-2026-0201</td><td>♂</td><td><span class="geno pos">+</span></td><td><span class="geno pos">flox/flox</span></td><td>新笼 R2-B3</td></tr>
+        <tr style="background:var(--ok-soft);"><td>☑</td><td>MK-2026-0203</td><td>♀</td><td><span class="geno pos">+</span></td><td><span class="geno pos">flox/flox</span></td><td>新笼 R2-B4</td></tr>
+        <tr><td>☐</td><td>MK-2026-0202</td><td>♀</td><td><span class="geno neg">−</span></td><td><span class="geno pos">flox/+</span></td><td>—</td></tr>
+        <tr><td>☐</td><td>MK-2026-0204</td><td>♂</td><td><span class="geno pend">无效</span></td><td>—</td><td>待重取</td></tr>
+      </table>
+      <button class="btn primary" style="margin-top:10px;" onclick="fakeOp('toast5')">将选中 2 只移入新笼</button>
+      <div class="toast" id="toast5">✓ 已生成换笼记录</div>
+    </div>
+  </div>
+</div>
+
+<!-- FR-6 -->
+<div class="fr" id="fr6">
+  <div class="fr-head"><span class="fr-id">FR-6</span><span class="fr-name">繁育任务提醒</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>把日期驱动的工作从人脑迁移到系统待办。</p>
+  <table>
+    <tr><th>提醒类型</th><th>触发规则</th><th>提前量</th><th>完成动作</th></tr>
+    <tr><td>待断乳</td><td>窝次出生日期 + 21 天</td><td>前 2 天生成</td><td>执行断乳分笼（FR-5 辅助视图）或标记已处理</td></tr>
+    <tr><td>待分笼（查栓）</td><td>合笼日期 + 19 天未见窝次</td><td>当天生成</td><td>确认未孕并分笼 / 继续观察</td></tr>
+    <tr><td>待鉴定</td><td>仔鼠断乳完成且基因型为"待鉴定"</td><td>断乳完成时生成</td><td>送检并录入结果（FR-5）</td></tr>
+    <tr><td>超龄</td><td>在养鼠日龄 &gt; 阈值（默认 8 月龄，S-2 可配）且不属于任何进行中计划与繁育对</td><td>每月检查</td><td>加入计划 / 淘汰</td></tr>
+    <tr><td>死亡归因确认</td><td>快速登记死亡（FR-8a）</td><td>登记时生成，24h/48h 分级提醒</td><td>责任人确认正式死因 / 当日撤销（留痕）</td></tr>
+  </table>
+  <p><strong>展示：</strong>首页待办列表按到期日升序；笼位看板对应笼格变黄；每日 8:00 向相关操作人生成站内汇总（无邮件/IM 推送，<span class="tag assume">Assumption, TBD</span>：团队接受进系统看）。提醒被处理后关闭；到期未处理每天重复置顶，不产生升级通知（死亡归因确认除外，见 FR-8a）。</p>
+</div>
+
+<!-- FR-7 -->
+<div class="fr" id="fr7">
+  <div class="fr-head"><span class="fr-id">FR-7</span><span class="fr-name">实验计划与伦理编号关联</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>伦理年审时一键回答"这个编号下实际用了多少只鼠、都是谁、怎么处理的"。</p>
+  <p><strong>触发：</strong>PI 创建计划并填写伦理编号与批准上限；成员将小鼠分配至计划。</p>
+  <p><strong>处理规则：</strong></p>
+  <ul>
+    <li>分配校验：仅在养小鼠可分配；一只小鼠同时只属于一个进行中计划；</li>
+    <li>实际用鼠数 = 该计划下已进入任一终态的小鼠数（<strong>含快速登记的死亡</strong>，与安乐死口径一致；死因未确认不阻断计数，报表单列「原因待确认」数量），只读，实时回写；</li>
+    <li>当实际用鼠数达到批准上限的 <strong>90%</strong> 时，计划卡片与首页显示黄色预警；达到 100% 时<strong>阻断</strong>新的分配操作并提示"已达伦理批准上限"，须修改批准上限（留痕）后才可继续；</li>
+    <li>计划关闭（完成/中止）后其小鼠保留关联，只读。</li>
+  </ul>
+  <div class="demo">
+    <div class="demo-head"><span>静态示意 · 计划卡片（含伦理用量预警）</span><span class="rid">FR-7</span></div>
+    <div class="demo-body">
+      <div class="mock-card">
+        <div class="row"><strong>疼痛模型行为学实验</strong><span class="chip">伦理编号 IACUC-2025-041</span></div>
+        <div style="font-size:12.5px;color:var(--sub);margin:6px 0;">批准 60 只 · 实际用鼠 <strong style="color:var(--amber);">54 只（90%）</strong> · 进行中</div>
+        <div class="banner2 b-amber show">⚠ 已达批准上限 90%，剩余额度 6 只</div>
+      </div>
+      <div class="mock-card" style="opacity:.85;">
+        <div class="row"><strong>纤维化造模预实验</strong><span class="chip">伦理编号 IACUC-2025-038</span></div>
+        <div style="font-size:12.5px;color:var(--sub);margin:6px 0;">批准 30 只 · 实际用鼠 <strong style="color:var(--warn);">30 只（100%）</strong></div>
+        <div class="banner2 b-red show">⛔ 已达上限，新分配已阻断 · 需 PI 调整批准数</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FR-8 -->
+<div class="fr" id="fr8">
+  <div class="fr-head"><span class="fr-id">FR-8</span><span class="fr-name">安乐死与离群记录（完整登记）</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>终态登记是合规证据链的最后一环，必须"原因必填、操作留痕、数量回写"。本节定义完整登记流程（含完整死因枚举与撤销规则）；现场无法判定死因时的快速登记见 <a href="#fr8a">FR-8a</a>。</p>
+  <p><strong>触发：</strong>档案页、扫码工作台、或筛选列表批量选择 → "登记离群"。</p>
+  <p><strong>处理规则：</strong></p>
+  <ul>
+    <li>三选一终态：已用于实验（安乐死）/ 自然死亡 / 淘汰；</li>
+    <li><strong>原因必填</strong>：预设枚举（实验终点 / 人道终点-发病 / 人道终点-体重下降 / 基因型不符 / 超龄 / 其他-备注必填）；</li>
+    <li>批量登记时对每只鼠继承同一原因，可逐只修改；</li>
+    <li>确认弹窗列出将受影响的小鼠清单与所属计划，输入确认文字 <code>确认</code> 后执行；</li>
+    <li>执行后：状态置终态、笼内移除、实际用鼠数回写计划、时间线写入操作人/时间/原因；</li>
+    <li><strong>撤销（当日留痕撤销）：</strong>
+      <ul>
+        <li>「已用于实验」与快速登记（初判）的「自然死亡」：登记当日可撤销，不限定操作人（防误操作毁数据、容纳低体温蛰伏等误判，见 FR-8a）；</li>
+        <li>直登完整死因的「自然死亡」与「淘汰」：不可撤销（产品判断：这两类死因明确、不存在误判空间，撤销反而破坏审计链）；</li>
+        <li>所有撤销均留痕，用鼠数同步回退。</li>
+      </ul>
+    </li>
+  </ul>
+  <div class="demo">
+    <div class="demo-head"><span>交互演示 · 登记离群确认</span><span class="rid">FR-8</span></div>
+    <div class="demo-body">
+      <button class="btn danger" onclick="toggleBox('cullBox')">登记离群（已选 3 只）</button>
+      <div class="confirm-box" id="cullBox">
+        <strong style="font-size:13.5px;">⚠ 将 3 只小鼠置为终态，请确认</strong>
+        <div style="font-size:12.5px;margin:6px 0;color:var(--sub);">MK-2026-0202、MK-2026-0204、MK-2026-0207 · 计划：疼痛模型行为学实验</div>
+        <div class="reason">
+          <label><input type="radio" name="rs"> 实验终点</label>
+          <label><input type="radio" name="rs"> 人道终点-发病</label>
+          <label><input type="radio" name="rs"> 基因型不符</label>
+        </div>
+        <div style="font-size:12px;margin-top:8px;">输入「确认」以执行：<input id="cullInput" style="border:1px solid var(--line);border-radius:4px;padding:3px 8px;font-size:12.5px;" placeholder="确认"></div>
+        <button class="btn danger" onclick="if(document.getElementById('cullInput').value==='确认'){toggleBox('cullBox');fakeOp('toast8')}else{alert('请输入「确认」')}">执行</button>
+        <div class="toast" id="toast8">✓ 已登记 · 用鼠数已回写计划</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FR-8a -->
+<div class="fr" id="fr8a">
+  <div class="fr-head"><span class="fr-id">FR-8a</span><span class="fr-name">死亡快速登记与归因确认（初判模式）</span><span class="tag p0">P0</span></div>
+  <p><strong>目的：</strong>动物福利要求尸体及时移出（登记不能被任何确认流程阻塞），但现场往往无法立即判定死因。本模块提供<strong>快速登记（初判）</strong>模式，设计原则是<strong>「事实与归因分离」</strong>：死亡是客观事实 → 登记即生效；死因是实验数据 → 由最了解实验语境的分配人在 48h 内补全。系统不设权限限制，本模式对所有成员开放——选择它的是登记策略，而非身份。</p>
+  <p><strong>触发与范围：</strong>任何成员在扫码工作台（FR-3）或档案页选择「快速登记（初判）」。<strong>初判记录的状态同样立即生效</strong>；后续补全死因走归因确认闭环。范围仅限「自然死亡」——「已用于实验（安乐死）」与「淘汰」是明确决策，始终走 FR-8 完整登记。</p>
+  <p><strong>处理规则：</strong></p>
+  <table>
+    <tr><th>环节</th><th>规则</th></tr>
+    <tr><td>登记</td><td>必填：死亡个体（逐只勾选，防整笼误标）、发现时间（默认当前，可改）、发现场景（日常巡查/换笼/其他）；死因只能从<strong>受限初判枚举</strong>选择（外观无异常/明显病变/打斗外伤/无法判断），标记「初判-待确认」；照片可选留存</td></tr>
+    <tr><td>生效</td><td>提交后小鼠状态<strong>立即</strong>置为「自然死亡」、笼内移除——事实登记不等待任何确认</td></tr>
+    <tr><td>通知</td><td>向该鼠所属实验计划的<strong>责任人（分配人）</strong>与 PI 生成待办「死亡归因确认」；未关联计划的仅通知 PI</td></tr>
+    <tr><td>归因确认</td><td>责任人 48h 内将初判转换为<strong>正式死因</strong>（实验语义完整枚举：人道终点-发病/实验操作相关/环境管理相关/其他-备注必填）；确认后记录转为正式，报表中「原因待确认」标记关闭</td></tr>
+    <tr><td>超时升级</td><td>24h 再次提醒责任人 → 48h 升级提醒至课题组长；未确认记录在用量报表中带「原因待确认」标记，不阻塞其他任何流程</td></tr>
+  </table>
+  <p><strong>与其他模块的衔接：</strong></p>
+  <ul>
+    <li>S-1 留痕：快速登记记录采用<strong>双操作人</strong>结构——发现人与归因确认人，时间线分两段、只增不改；</li>
+    <li>FR-8 撤销：快速登记（初判）记录登记当日可撤销，不限定操作人；</li>
+    <li>FR-7 用量核算：快速登记死亡计入实际用鼠数，与完整登记口径一致。</li>
+  </ul>
+  <div class="demo">
+    <div class="demo-head"><span>交互演示 · 三场景（现场快速登记 / 责任人归因确认 / 异常分支）</span><span class="rid">FR-8a</span></div>
+    <div class="demo-body">
+
+      <div class="role-tabs">
+        <button class="on" onclick="scene8a(this,'sa1')">① 现场快速登记</button>
+        <button onclick="scene8a(this,'sa2')">② 责任人 · 归因确认</button>
+        <button onclick="scene8a(this,'sa3')">③ 异常分支</button>
+      </div>
+
+      <!-- 场景1 -->
+      <div class="scene8a show" id="sa1">
+        <div class="frame-row">
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="screen8a show" id="pa1s1">
+              <div class="snav"><span class="back" onclick="phone8a(1,1)">← 连续扫码</span><span>08:31</span></div>
+              <div class="card8a">
+                <div class="row"><strong>笼 R1-A2</strong><span class="chip">繁殖笼</span></div>
+                <div style="margin-top:6px;">
+                  <span class="chip f">♀ MK-2026-0102</span>
+                  <span class="chip m">♂ MK-2026-0097</span>
+                  <span class="chip f">♀ MK-2026-0143</span>
+                </div>
+                <div class="lbl">观察记录</div>
+                <div class="choice" id="obsChoice">
+                  <button onclick="pick8a(this)">✓ 正常</button>
+                  <button onclick="pick8a(this)">精神差</button>
+                  <button onclick="pick8a(this)">打斗受伤</button>
+                  <button class="on" onclick="pick8a(this)">死亡</button>
+                </div>
+                <button class="btn danger block" onclick="phone8a(1,2)">登记死亡 →</button>
+              </div>
+            </div>
+            <div class="screen8a" id="pa1s2">
+              <div class="snav"><span class="back" onclick="phone8a(1,1)">← 返回</span><span>第 1/3 步</span></div>
+              <div class="b-red banner">选择死亡个体（可多选）</div>
+              <div class="radio-row red on" onclick="radioPick8a(this)"><strong>♀ MK-2026-0102</strong><span class="chip">计划 IACUC-2025-041</span></div>
+              <div class="radio-row red" onclick="radioPick8a(this)">♂ MK-2026-0097</div>
+              <div class="radio-row red" onclick="radioPick8a(this)">♀ MK-2026-0143</div>
+              <button class="btn danger block" onclick="phone8a(1,3)">下一步：填写发现信息</button>
+            </div>
+            <div class="screen8a" id="pa1s3">
+              <div class="snav"><span class="back" onclick="phone8a(1,2)">← 返回</span><span>第 2/3 步</span></div>
+              <div class="b-amber banner">快速登记模式：状态将<strong>立即生效</strong>，死因为初判，需责任人 48h 内确认</div>
+              <div class="field"><span class="lb">死亡个体</span><div class="val">♀ MK-2026-0102</div></div>
+              <div class="field"><span class="lb">发现时间（默认当前，可修改）</span><div class="val">2026-10-18 08:32</div></div>
+              <div class="lbl">发现场景</div>
+              <div class="choice" id="sceneChoice">
+                <button class="on" onclick="pick8a(this)">日常巡查</button>
+                <button onclick="pick8a(this)">换笼时</button>
+                <button onclick="pick8a(this)">其他</button>
+              </div>
+              <div class="lbl">初判死因（受限枚举，正式死因由责任人确认）</div>
+              <div class="choice danger" id="causeChoice">
+                <button class="on" onclick="pick8a(this)">外观无异常</button>
+                <button onclick="pick8a(this)">明显病变</button>
+                <button onclick="pick8a(this)">打斗外伤</button>
+                <button onclick="pick8a(this)">无法判断</button>
+              </div>
+              <div class="photo-ph">📷 拍照留存（可选）</div>
+              <button class="btn primary block" onclick="phone8a(1,4)">提交登记</button>
+            </div>
+            <div class="screen8a" id="pa1s4">
+              <div class="snav"><span class="back" onclick="phone8a(1,1)">← 连续扫码</span><span>第 3/3 步</span></div>
+              <div class="b-ok banner">✓ 已登记生效 · MK-2026-0102 状态置为「死亡」，已移出笼 R1-A2</div>
+              <div class="card8a">
+                <div class="row"><strong>登记记录</strong><span class="chip amber">初判-待确认</span></div>
+                <div class="timeline">
+                  <div class="tl-item"><span class="tl-dot amber"></span><div><span class="who">发现人：王同学</span><br>08:32 · 日常巡查 · 初判「外观无异常」</div></div>
+                  <div class="tl-item"><span class="tl-dot" style="background:#dfe3e8;"></span><div style="color:var(--sub);">归因确认人：待李同学（分配人）确认 · 48h 内</div></div>
+                </div>
+              </div>
+              <div class="card8a">
+                <strong style="font-size:12.5px;">已生成待办</strong>
+                <div style="font-size:12px;margin-top:4px;">→ 李同学：死亡归因确认（剩 48h）<br>→ PI 张老师：同步知会</div>
+              </div>
+              <div class="b-blue banner">1.5s 后返回连续扫码，可继续处理下一笼</div>
+            </div>
+          </div>
+          <div class="explain">
+            <h5>要点：事实与归因分离</h5>
+            <div class="step"><span class="n">1</span><div><strong>入口在扫码工作台</strong>——快速登记与完整登记共用「观察记录 → 死亡」入口，区别仅在死因枚举与后续确认闭环。</div></div>
+            <div class="step"><span class="n">2</span><div><strong>先选个体再填信息</strong>——强制先定位到具体鼠，杜绝"整笼标记死亡"的误操作。</div></div>
+            <div class="step"><span class="n">3</span><div><strong>死因只有初判枚举</strong>——全部是"看得到"的描述；实验语义的死因（人道终点等）不出现，避免登记人在无实验语境时替责任人下结论。</div></div>
+            <div class="step"><span class="n">4</span><div><strong>提交即生效</strong>——状态立刻置死亡并移出笼位，登记卡片预生成"双操作人"时间线，归因段为占位待办。</div></div>
+            <div class="note blue">为什么提交即时生效：尸体滞留是动物福利违规，登记不能等待任何人的确认。归因闭环由通知体系承接（场景②）。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 场景2 -->
+      <div class="scene8a" id="sa2">
+        <div class="frame-row">
+          <div class="desk8a">
+            <div id="d8aTodo">
+              <div class="lbl" style="font-size:13px;">李同学 · 我的待办（桌面端）</div>
+              <div class="todo8a" onclick="desk8a(1)">
+                <strong>死亡归因确认 · ♀ MK-2026-0102</strong><br>
+                <span style="color:var(--sub);">发现人：王同学 · 08:32 · 初判「外观无异常」 · <span class="chip amber">剩余 46h</span></span>
+              </div>
+              <div class="note" style="font-size:12px;">超时规则：24h 再次提醒本人 → 48h 升级至 PI。待办不阻塞其他操作，但未确认记录在用量报表中带「原因待确认」标记。</div>
+            </div>
+            <div id="d8aForm" style="display:none;">
+              <div class="row" style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>死亡归因确认 · ♀ MK-2026-0102</strong>
+                <span class="back" style="color:var(--brand);cursor:pointer;font-size:12px;" onclick="desk8a(0)">← 返回</span>
+              </div>
+              <div class="card8a" style="background:#fbfcfe;">
+                <div class="timeline">
+                  <div class="tl-item"><span class="tl-dot amber"></span><div><span class="who">发现（快速登记）</span><br>王同学 · 08:32 · 日常巡查 · 初判「外观无异常」 · 📷 已留档</div></div>
+                  <div class="tl-item"><span class="tl-dot"></span><div style="color:var(--sub);">分配背景：2026-09-30 由李同学分配至计划「疼痛模型行为学实验」</div></div>
+                </div>
+              </div>
+              <div class="lbl">确认正式死因（实验语义枚举）</div>
+              <div class="radio-row red on" onclick="radioPick8a(this)">人道终点-发病（推测：昼夜温差应激）</div>
+              <div class="radio-row red" onclick="radioPick8a(this)">实验操作相关</div>
+              <div class="radio-row red" onclick="radioPick8a(this)">环境/管理相关</div>
+              <div class="radio-row red" onclick="radioPick8a(this)">其他（备注必填）</div>
+              <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+                <button class="btn danger" onclick="desk8a(2)">提交归因确认</button>
+                <button class="btn" onclick="desk8a(3)">疑似误判？撤销本次登记</button>
+              </div>
+            </div>
+            <div id="d8aDone" style="display:none;">
+              <div class="b-ok banner">✓ 归因已确认 · 用量报表中该记录转为正式死因</div>
+              <div class="card8a">
+                <strong style="font-size:13px;">完整时间线（双操作人）</strong>
+                <div class="timeline">
+                  <div class="tl-item"><span class="tl-dot amber"></span><div><span class="who">发现人：王同学</span><br>08:32 · 快速登记 · 初判「外观无异常」</div></div>
+                  <div class="tl-item"><span class="tl-dot red"></span><div><span class="who">归因确认人：李同学</span><br>10:15 · 正式死因「人道终点-发病」</div></div>
+                </div>
+              </div>
+              <div class="note" style="font-size:12px;">时间线只增不改：发现人可修正的是"初判"，责任人确认的是"死因"，两段记录独立留痕（规则 S-1）。</div>
+            </div>
+            <div id="d8aUndo" style="display:none;">
+              <div class="b-amber banner">当日撤销：确认后立即生效并留痕</div>
+              <div class="card8a" style="font-size:12.5px;">
+                <strong>适用情形：</strong>初判为误判（如低体温蛰伏被当作死亡）。<br>
+                <strong>撤销后：</strong>鼠回笼 R1-A2，状态恢复在养，时间线保留「登记→撤销」完整记录，不视为数据污染。<br>
+                <strong>超当日：</strong>不可撤销，改为走「死因修正」流程。
+              </div>
+            </div>
+          </div>
+          <div class="explain">
+            <h5>要点：归因闭环</h5>
+            <div class="step"><span class="n">1</span><div><strong>待办直达责任人</strong>——通知对象是该鼠的分配人（最了解实验语境的人），PI 仅同步知会。</div></div>
+            <div class="step"><span class="n">2</span><div><strong>确认页展示完整上下文</strong>——快速登记详情 + 分配背景，让归因有依据而非凭空选择。</div></div>
+            <div class="step"><span class="n">3</span><div><strong>正式死因是实验语义枚举</strong>——与初判枚举完全分开，两套词表、两段留痕。</div></div>
+            <div class="step"><span class="n">4</span><div><strong>误判出口：当日撤销</strong>——全员可执行、留痕；超当日不可撤销，转「死因修正」流程。</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 场景3 -->
+      <div class="scene8a" id="sa3">
+        <div class="frame-row">
+          <div class="desk8a">
+            <strong>分支 A · 未断乳仔鼠死亡 → 窝次数量修正</strong>
+            <div class="b-blue banner" style="margin-top:8px;">仔鼠无个体档案，不走死亡登记，走窝次修正</div>
+            <div class="card8a">
+              <div class="row"><strong>窝次 L-041（C57 × Cre+）</strong><span class="chip">存栏 6 只 · 未断乳</span></div>
+              <div class="lbl">发现死亡仔鼠数</div>
+              <div class="choice" id="pupChoice">
+                <button onclick="pick8a(this)">1</button>
+                <button class="on" onclick="pick8a(this)">2</button>
+                <button onclick="pick8a(this)">3</button>
+              </div>
+              <div class="lbl">初判原因</div>
+              <div class="choice danger" id="pupCause">
+                <button class="on" onclick="pick8a(this)">母鼠弃养</button>
+                <button onclick="pick8a(this)">挤压</button>
+                <button onclick="pick8a(this)">冻死</button>
+                <button onclick="pick8a(this)">无法判断</button>
+              </div>
+              <button class="btn primary" onclick="fakeOp('pupToast')">提交修正</button>
+              <div class="toast" id="pupToast">✓ 存栏 6 → 4 · 已通知责任人 · 断乳建档时按 4 只生成档案</div>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
+            <strong>分支 B · 误判复活 → 当日撤销</strong>
+            <div class="card8a">
+              <div style="font-size:12.5px;color:var(--sub);margin:6px 0;">情形：MK-2026-0143 被快速登记死亡后，同期巡查发现其在笼角低体温活动。</div>
+              <div class="radio-row red on" onclick="radioPick8a(this)">撤销原因：误判（存活） · 撤销人：张老师（课题组长） · 距登记 3h</div>
+              <button class="btn danger" onclick="fakeOp('undoToast')">执行撤销</button>
+              <div class="toast" id="undoToast">✓ 已撤销 · 鼠回笼 R1-A2 恢复在养 · 时间线完整保留登记→撤销记录</div>
+            </div>
+            <div class="note red" style="font-size:12px;">边界：撤销仅限登记当日 + 仅限快速登记（初判）记录。直登完整死因的死亡记录不存在误判空间，不可撤销。</div>
+          </div>
+          <div class="explain">
+            <h5>要点：为什么必须有这两个分支</h5>
+            <div class="step"><span class="n">A</span><div><strong>仔鼠死亡是繁育笼最高频的死亡场景</strong>——断乳前仔鼠没有档案，若强行走个体死亡登记会产生"幽灵档案"。数量修正保持了"档案=个体"的不变式，断乳建档按修正后数量生成（FR-2 已同步）。</div></div>
+            <div class="step"><span class="n">B</span><div><strong>快速登记引入误判可能</strong>——低体温蛰伏可能被误判为死亡，因此初判记录开放当日撤销（不限操作人）；完整死因直登无此问题，保持不可撤销。</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <p><strong>异常汇总：</strong>扫错鼠/笼 → 当日撤销（留痕）；对已终态个体重复登记 → 状态机拦截并提示"该鼠已终态"；误判复活 → 场景③分支 B 流程。</p>
+</div>
+
+<!-- FR-9 -->
+<div class="fr" id="fr9">
+  <div class="fr-head"><span class="fr-id">FR-9</span><span class="fr-name">盘点对账</span><span class="tag p1">P1</span></div>
+  <p><strong>目的：</strong>月度盘点时用手机连续扫笼卡，系统自动比对"账面在养"与"实际扫码"。</p>
+  <p><strong>处理规则：</strong>开始盘点 → 连续扫码累积清单 → 结束后生成差异报告（账面有而未扫到 / 扫到但账面已终态 / 位置不符）→ 差异项逐条处理（确认死亡补登记 / 修正笼位）。盘点期间系统只读提示其他成员暂缓批量操作。<span class="tag assume">Assumption, TBD</span>：盘点为月度频率。</p>
+</div>
+
+<!-- FR-10 -->
+<div class="fr" id="fr10">
+  <div class="fr-head"><span class="fr-id">FR-10</span><span class="fr-name">繁育与存活统计</span><span class="tag p1">P1</span></div>
+  <p><strong>目的：</strong>把 colony 健康的三个关键指标——死亡率、基因型性别比、HE/WT 比例——从 Excel 手工汇总变为实时聚合视图，支撑繁育决策（保留/合并哪些繁育对、品系是否存在生存或传递问题）。统计页为<strong>只读聚合，无独立录入</strong>；数据来自 FR-8/FR-8a 终态记录与 FR-5 鉴定结果，口径统一见 S-7。</p>
+  <h4>1) 死亡率</h4>
+  <ul>
+    <li>指标：月度死亡率 = 当月死亡个体数 ÷ 当月平均在养数（S-7）；支持按品系、房间、月龄段、死因分类下钻；</li>
+    <li>视图：近 12 个月趋势、品系对比、死因构成比；快速登记且死因未确认的死亡计入死亡率分子，但在死因构成中单列「原因待确认」，不与确认死因混算；</li>
+    <li>除零保护：期间在养数为 0 时显示「—」，不显示 0%。</li>
+  </ul>
+  <h4>2) 基因型性别比</h4>
+  <ul>
+    <li>口径：按「有效鉴定结果 × 建档性别」交叉聚合，输出每种基因型的公/母数量与占比（S-7）；</li>
+    <li>视图：品系 → 基因型 → 公母计数与百分比；支持按窝次批次查看；</li>
+    <li>用途：X 连锁传递或性别致死偏离时直接可见（如某基因型公鼠占比持续异常低），辅助繁育对取舍。</li>
+  </ul>
+  <h4>3) HE/WT 比例（孟德尔期望对比）</h4>
+  <ul>
+    <li>口径：按繁育对/窝次聚合已鉴定子代的基因型分布，与配型的孟德尔期望对比；系统内置常见配型期望表（杂合×WT = 1:1、杂合×杂合 = 1:2:1、纯合×杂合 = 1:1），支持课题组自定义配型期望；</li>
+    <li>偏离预警：有效样本 ≥ 8 只且实际占比相对期望的偏差超过阈值（默认 1/3，S-2 可配 <span class="tag assume">Assumption, TBD</span>）时，繁育对卡片标黄并提示可能原因（纯合致死 / 鉴定错误 / 样本偏倚）；预警只提示不阻断；</li>
+    <li>视图：单繁育对分布条形图 + 跨窝累计分布。</li>
+  </ul>
+  <div class="demo">
+    <div class="demo-head"><span>静态示意 · HE/WT 分布与偏离预警 + 死亡率</span><span class="rid">FR-10</span></div>
+    <div class="demo-body">
+      <div class="mock-card">
+        <div class="row"><strong>繁育对 BP-017（Cre/+ × +/+）</strong><span class="chip ok">符合期望</span></div>
+        <div style="font-size:12px;color:var(--sub);margin:4px 0;">已鉴定 22 只 · 期望 HE : WT = 1 : 1</div>
+        <div style="font-size:12px;margin:6px 0 2px;">HE（Cre/+）· 12 只 · 54.5%</div>
+        <div style="height:10px;background:#eef2f7;border-radius:5px;"><div style="width:54.5%;height:10px;border-radius:5px;background:var(--brand);"></div></div>
+        <div style="font-size:12px;margin:8px 0 2px;">WT（+/+）· 10 只 · 45.5%</div>
+        <div style="height:10px;background:#eef2f7;border-radius:5px;"><div style="width:45.5%;height:10px;border-radius:5px;background:#8aa6c8;"></div></div>
+        <div style="font-size:12px;color:var(--sub);margin-top:8px;">性别比：HE 公 7 / 母 5 · WT 公 4 / 母 6</div>
+      </div>
+      <div class="mock-card">
+        <div class="row"><strong>繁育对 BP-023（同配型）</strong><span class="chip amber">⚠ 比例偏离</span></div>
+        <div style="font-size:12px;color:var(--sub);margin:4px 0;">已鉴定 16 只 · 期望 HE : WT = 1 : 1</div>
+        <div style="font-size:12px;margin:6px 0 2px;">HE（Cre/+）· 5 只 · 31.3%</div>
+        <div style="height:10px;background:#eef2f7;border-radius:5px;"><div style="width:31.3%;height:10px;border-radius:5px;background:var(--amber);"></div></div>
+        <div style="font-size:12px;margin:8px 0 2px;">WT（+/+）· 11 只 · 68.7%</div>
+        <div style="height:10px;background:#eef2f7;border-radius:5px;"><div style="width:68.7%;height:10px;border-radius:5px;background:#8aa6c8;"></div></div>
+        <div class="banner b-amber" style="margin-top:10px;">⚠ HE 占比 31.3%，偏离期望 50% 超过阈值 · 可能原因：鉴定错误 / 样本偏倚 · 建议核查送检记录</div>
+      </div>
+      <div class="mock-card">
+        <div class="row"><strong>死亡率（全群 · 近 3 个月）</strong><span class="chip">按品系/月龄段可下钻</span></div>
+        <table style="margin:8px 0 0;">
+          <tr><th>月份</th><th>在养均值</th><th>死亡数</th><th>死亡率</th></tr>
+          <tr><td>2026-08</td><td>142</td><td>1</td><td>0.7%</td></tr>
+          <tr><td>2026-09</td><td>138</td><td>2</td><td>1.4%</td></tr>
+          <tr><td>2026-10</td><td>141</td><td>1</td><td>0.7%</td></tr>
+        </table>
+        <div style="font-size:12px;color:var(--sub);">死因构成：人道终点 40% · 实验终点 30% · 原因待确认（快速登记）20% · 其他 10%</div>
+      </div>
+    </div>
+  </div>
+  <p><strong>异常：</strong>鉴定「无效」结果不计入任何比例的分母（S-7），避免拉偏统计；筛选条件下无数据时显示空态「暂无符合条件的记录」。</p>
+</div>
+
+<!-- ============ 5 ============ -->
+<h2 id="s5">5. 共享规则</h2>
+<table>
+  <tr><th>ID</th><th>规则</th><th>内容</th></tr>
+  <tr><td>S-1</td><td>操作留痕</td><td>所有改变小鼠状态、笼位、计划关联的操作均写入时间线：操作人、时间、前后值。时间线只增不改，无删除入口。<strong>快速登记死亡采用双操作人结构</strong>：发现人 + 归因确认人，时间线分两段独立记录（见 FR-8a）。</td></tr>
+  <tr><td>S-2</td><td>课题组级参数</td><td>断乳日龄（默认 21 天）、查栓分笼天数（默认 19 天）、超龄阈值（默认 8 月龄）、归因确认时限（默认 48h）、孟德尔偏离预警阈值（默认相对期望偏差 1/3，FR-10）在设置中调整；调整仅影响之后生成的提醒，不回溯。</td></tr>
+  <tr><td>S-3</td><td>二维码规范</td><td>笼码 = 笼 ID；鼠码 = mouse_id。打印模板 P1 提供；扫描解析失败按 FR-3 异常处理。</td></tr>
+  <tr><td>S-4</td><td>伦理编号约束</td><td>同一伦理编号允许关联多个计划（多年度延续），但"进行中"状态的计划共享同一批准上限核算池。<span class="tag assume">Assumption, TBD</span>：需与实验室实际伦理批准结构核对。</td></tr>
+  <tr><td>S-5</td><td>通知通道</td><td>本期仅站内待办与首页聚合，无邮件/短信/IM 推送。死亡归因确认的 24h/48h 分级提醒同样走站内待办。</td></tr>
+  <tr><td>S-6</td><td>数据归属</td><td>单实验室单租户，全部数据归课题组；成员离职后其账号禁用，历史操作人名称保留不改。</td></tr>
+  <tr><td>S-7</td><td>统计口径（FR-10）</td><td>死亡率 = 期间死亡个体数 ÷ 期间平均在养数，最小粒度按月；基因型相关比例仅计入「鉴定结果有效」的个体，无效结果不计入分母；性别按建档时记录计；快速登记且死因未确认的死亡计入死亡率分子，但在死因构成中单列「原因待确认」。统计页为只读聚合，随数据实时更新。</td></tr>
+</table>
+
+<!-- ============ 6 ============ -->
+<h2 id="s6">6. 开放问题</h2>
+<table>
+  <tr><th>问题</th><th>影响</th><th>建议动作</th></tr>
+  <tr><td><span class="tag tbd">TBD</span> 伦理批准上限是按"编号"还是按"编号+年度"核算？</td><td>影响 FR-7 阻断逻辑与 S-4</td><td>与机构 IACUC 模板核对后定稿</td></tr>
+  <tr><td><span class="tag tbd">TBD</span> 是否需要导入现有 Excel 存量数据？</td><td>影响上线策略与是否开发导入工具</td><td>评估存量数据质量，决定导入或"新鼠新录、旧鼠补录"</td></tr>
+  <tr><td><span class="tag ok" style="background:var(--ok-soft);color:var(--ok);">已解决</span> 管理员是否需要"代研究生登记死亡"的权限？</td><td>——</td><td>已由快速登记 + 归因确认机制覆盖（FR-8a）：死亡登记对全员开放，现场无法判定死因时走初判快速登记</td></tr>
+</table>
+
+</main>
+</div>
+
+<script>
+// FR-1 rack demo
+const rackData = [
+  null,{id:'A2',n:3,warn:true},{id:'A3',n:2},null,{id:'A5',n:4},{id:'A6',n:1},
+  {id:'B1',n:5},{id:'B2',n:2},null,null,{id:'B5',n:3,warn:true},{id:'B6',n:2},
+  null,{id:'C2',n:1},null,{id:'C4',n:6},null,null,
+  {id:'D1',n:2},{id:'D2',n:3},{id:'D3',n:1},null,{id:'D5',n:2},null,
+  null,null,{id:'E3',n:4},{id:'E4',n:2,warn:true},null,{id:'E6',n:1},
+];
+const rack1 = document.getElementById('rack1');
+rackData.forEach((c,i)=>{
+  const d = document.createElement('div');
+  if(c){
+    d.className = 'cell occ' + (c.warn?' warn-cell':'');
+    d.innerHTML = `<span class="cid">${c.id}</span><span class="cnt">${c.n} 只${c.warn?' ⚠':''}</span>`;
+    d.onclick = ()=>{
+      document.querySelectorAll('#rack1 .cell').forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel');
+      const p = document.getElementById('panel1');
+      p.classList.add('show');
+      document.getElementById('panel1-title').textContent = `笼 R1-${c.id} · ${c.n} 只在养`;
+      document.getElementById('panel1-body').innerHTML =
+        `<span class="chip m">♂ MK-2026-0${100+i}</span><span class="chip f">♀ MK-2026-0${101+i}</span>` +
+        (c.warn? `<div class="banner b-amber show" style="margin-top:8px;">⚠ 待办：窝次断乳提醒（明天到期）</div>`:'');
+      document.getElementById('panel1-actions').innerHTML =
+        `<button class="btn" onclick="fakeOp('toast1')">移动笼子</button><button class="btn" onclick="fakeOp('toast1')">打印笼卡</button>`;
+    };
+  } else {
+    d.className = 'cell';
+    d.innerHTML = `<span class="cnt" style="font-size:10px;">空</span>`;
+    d.onclick = ()=>{
+      document.querySelectorAll('#rack1 .cell').forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel');
+      const p = document.getElementById('panel1');
+      p.classList.add('show');
+      document.getElementById('panel1-title').textContent = `笼位 R1-${['A','B','C','D','E'][Math.floor(i/6)]}${i%6+1}（空）`;
+      document.getElementById('panel1-body').innerHTML = '';
+      document.getElementById('panel1-actions').innerHTML =
+        `<button class="btn primary" onclick="fakeOp('toast1')">放入新笼</button>`;
+    };
+  }
+  rack1.appendChild(d);
+});
+function fakeOp(id){ const t=document.getElementById(id); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function toggleBox(id){ document.getElementById(id).classList.toggle('show'); }
+function scanTab(btn,id){
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  ['st1','st2','st3'].forEach(p=>document.getElementById(p).classList.toggle('show',p===id));
+}
+// FR-8a scene switching
+function scene8a(btn,id){
+  document.querySelectorAll('.role-tabs button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.scene8a').forEach(s=>s.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+}
+function phone8a(scene,n){
+  for(let i=1;i<=4;i++) document.getElementById('pa'+scene+'s'+i).classList.remove('show');
+  document.getElementById('pa'+scene+'s'+n).classList.add('show');
+}
+function pick8a(btn){
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function radioPick8a(row){
+  row.parentElement.querySelectorAll('.radio-row').forEach(r=>r.classList.remove('on'));
+  row.classList.add('on');
+}
+function desk8a(n){
+  document.getElementById('d8aTodo').style.display = n===0?'block':'none';
+  document.getElementById('d8aForm').style.display = n===1?'block':'none';
+  document.getElementById('d8aDone').style.display = n===2?'block':'none';
+  document.getElementById('d8aUndo').style.display = n===3?'block':'none';
+}
+</script>
+</body>
+</html>
