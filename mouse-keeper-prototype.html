@@ -101,6 +101,7 @@ tr.clickrow{cursor:pointer;} tr.clickrow:hover td{background:var(--brand-soft);}
 @keyframes pu{50%{background:var(--brand-soft);}}
 .cell .cid{font-weight:700;font-size:12px;}
 .cell .cnt{color:var(--sub);font-size:10.5px;}
+.cell .cname{font-size:9.5px;color:var(--brand);font-weight:600;max-width:94%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.15;}
 .bar{height:10px;background:#eef2f7;border-radius:5px;overflow:hidden;margin:4px 0;}
 .bar>i{display:block;height:10px;border-radius:5px;background:var(--brand);}
 .bar>i.amber{background:var(--amber);} .bar>i.gray{background:#8aa6c8;}
@@ -193,6 +194,7 @@ input[type=text],input[type=date],select.pg{border:1px solid var(--line);border-
   .cell{min-height:54px;padding:4px;}
   .cell .cid{font-size:12px;}
   .cell .cnt{font-size:10px;text-align:center;line-height:1.2;}
+  .cell .cname{font-size:10px;}
   .cell,.btn,.choice button,.radio-row,.side a,.gcell,.clickrow,.chip.id,.m-close{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
   .modal-mask{padding:0;align-items:flex-end;}
   .modal{border-radius:16px 16px 0 0;max-width:none;max-height:92vh;padding:18px 16px calc(20px + env(safe-area-inset-bottom));overscroll-behavior:contain;}
@@ -209,6 +211,7 @@ input[type=text],input[type=date],select.pg{border:1px solid var(--line);border-
   .cell{min-height:48px;}
   .cell .cid{font-size:11px;}
   .cell .cnt{font-size:9.5px;}
+  .cell .cname{font-size:9.5px;}
   .strip .st{padding:5px 10px;}
   .topbar select{max-width:100px;}
 }
@@ -267,8 +270,12 @@ function addMouse(o){
 // 存活统计动态化：初始已鉴定且有谱系的鼠视为已计入 ident 基线，动态统计时不重复叠加
 const IDENT_BASE=new Set(Object.values(M).filter(m=>m.fa&&m.mo&&m.geno&&m.geno!=='待鉴定'&&m.geno!=='无效').map(m=>m.id));
 function genoClass(g){
-  if(!g||g==='待鉴定'||g==='无效')return null;
-  if(g==='WT'||g.indexOf('flox')===0||g.indexOf('CreWT')===0)return 'WT';
+  if(!g||g==='待鉴定'||g==='无效'||g==='待录入')return null;
+  if(g==='WT')return 'WT';
+  if(g==='H')return 'HE';
+  // 兼容合并前的旧基因型字符串（CreH; flox/H、flox/flox、CreWT 等）
+  if(g.indexOf('CreH')>=0)return 'HE';
+  if(g.indexOf('WT')>=0)return 'WT';
   return 'HE';
 }
 function pairOffspring(p){
@@ -291,7 +298,7 @@ const TODOS=[];
 const OPLOG=[];
 
 const BATCHES=[];
-const CYC={cre:['待录入','+','−','±','无效'],flox:['待录入','flox/flox','flox/+','—','无效']};
+const CYC={geno:['待录入','H','WT','无效']}; // 合并后仅保留 H / WT 两种有效基因型
 
 /* ================= 运行时状态 ================= */
 const ui={cur:'home',user:'王同学',rack:'R1',moveFrom:null,scan:null,archId:null,archQ:'',archStatus:'全部',archStrain:'全部',archRange:'全部',archMonth:'全部',archOldOpen:false,
@@ -320,6 +327,21 @@ function loadData(){
    pair[1].length=0;(s[pair[0]]||[]).forEach(v=>pair[1].push(v));
   });
   if(!USERS.length)USERS.push('王同学');
+  // 兼容合并前的旧数据：送检批 Cre/flox 双列 → 单一基因型列（H / WT / 无效 / 待录入）
+  BATCHES.forEach(b=>(b.rows||[]).forEach(r=>{
+   if(r.geno===undefined){
+    if(r.cre==='无效'||r.flox==='无效')r.geno='无效';
+    else if(!r.cre||r.cre==='待录入'||!r.flox||r.flox==='待录入')r.geno='待录入';
+    else r.geno=(r.cre==='+'||r.flox==='flox/+'||r.flox==='flox/flox')?'H':'WT';
+    delete r.cre;delete r.flox;
+   }
+  }));
+  // 兼容合并前的旧基因型字符串（CreH; flox/H、CreWT; WT 等）→ H / WT
+  Object.values(M).forEach(m=>{
+   const g=m.geno;
+   if(!g||g==='待鉴定'||g==='无效'||g==='待录入'||g==='H'||g==='WT')return;
+   const cls=genoClass(g);m.geno=cls==='WT'?'WT':cls==='HE'?'H':g;
+  });
   // 恢复操作人：保存的用户必须在 USERS 中，否则回退到首个；无有效用户则保持未登录态
   const sav=s.ui||{};
   ui.user=(sav.user&&USERS.includes(sav.user))?sav.user:USERS[0]||null;
@@ -335,7 +357,9 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
 function ageTxt(b){const raw=b.replace(/^约\s*/,'');const d=Math.floor((new Date(TODAY)-new Date(raw))/86400000);if(isNaN(d))return '—';return d<60?(d+' 日龄'):(d/30.4).toFixed(1)+' 月龄';}
 function sexChip(s){return s==='♂'?'<span class="chip m">♂</span>':'<span class="chip f">♀</span>';}
-function genoBadge(g){if(g==='待鉴定'||g==='无效')return '<span class="geno pend">'+g+'</span>';return '<span class="geno pos">'+g+'</span>';}
+function genoBadge(g){if(!g||g==='待鉴定'||g==='无效'||g==='待录入')return '<span class="geno pend">'+(g||'待录入')+'</span>';
+ if(g==='WT')return '<span class="geno neg">WT</span>';
+ return '<span class="geno pos">'+g+'</span>';}
 function statusTag(m){if(m.status==='active')return '<span class="tag p0">在养</span>';
  if(m.status==='sacrificed')return '<span class="tag gray">已用于实验</span>';
  if(m.status==='culled')return '<span class="tag gray">淘汰</span>';
@@ -346,6 +370,9 @@ function deathCat(r){if(r.pending)return '原因待确认';if(r.cause.indexOf('�
 function cageHasTodo(pos){return activeTodos().some(t=>t.cage===pos);}
 function emptyPositions(){const out=[];['R1','R2'].forEach(rk=>ROWS.forEach(rw=>{for(let c=1;c<=6;c++){const p=rk+'-'+rw+c;if(!CAGES[p])out.push(p);}}));return out;}
 function firstEmpty(){return emptyPositions()[0];}
+/* 笼位自定义名称：name 为空时仅显示笼位编号 */
+function cageName(pos){const c=CAGES[pos];return (c&&c.name)?c.name:'';}
+function cageLabel(pos){const n=cageName(pos);return n?(pos+' · '+n):pos;}
 function monthDeathCount(mo){return DEATHS.filter(r=>!r.revoked&&r.month===mo).length;}
 function usedCount(pid){return DEATHS.filter(r=>!r.revoked&&r.plan===pid).length;}
 function pendCount(pid){return DEATHS.filter(r=>!r.revoked&&r.pending&&r.plan===pid).length;}
@@ -595,8 +622,8 @@ function execWean(lid,t){
  t.done=true;
  const bid='TB-2026-'+String(BATCHES.length+1).padStart(3,'0');
  TODOS.push({id:'t'+(todoSeq++),type:'鉴定',tone:'amber',title:'待鉴定 · 窝次 '+lid+' 仔鼠 '+L.count+' 只',detail:'断乳完成且基因型待鉴定 → 送检（FR-5）· 新笼 '+pos,due:'断乳完成时生成',batch:bid,done:false});
- BATCHES.push({id:bid,title:'送检批 · Cre PCR（窝次 '+lid+' 仔鼠，断乳后新建）',status:'结果回收 · 待录入',
-  rows:newIds.map(id=>({mid:id,sex:M[id].sex,cre:'待录入',flox:'待录入',src:'窝次 '+lid,target:'—'}))});
+ BATCHES.push({id:bid,title:'送检批 · 基因型鉴定（窝次 '+lid+' 仔鼠，断乳后新建）',status:'结果回收 · 待录入',
+  rows:newIds.map(id=>({mid:id,sex:M[id].sex,geno:'待录入',src:'窝次 '+lid,target:'—'}))});
  OPLOG.unshift({t:NOWT,text:'窝次 '+lid+' 断乳分笼：'+L.count+' 只建档入笼 '+pos+' · '+ui.user});
  render();toast('✓ 断乳完成：'+L.count+' 只档案已生成并入笼 '+pos+' · 已生成「待鉴定」待办与送检批');
 }
@@ -615,7 +642,9 @@ function pBoard(){
    const warn=cageHasTodo(pos);
    const n=cg.mice.length;
    h+='<div class="cell occ'+(warn?' warn-cell':'')+(ui.moveFrom===pos?' sel':'')+'" onclick="cellClick(\''+pos+'\')">'
-   +'<span class="cid">'+pos.split('-')[1]+'</span><span class="cnt">'+n+' 只'+(cg.pups?'+'+cg.pups.count+'仔':'')+(warn?' ⚠':'')+'</span></div>';
+   +'<span class="cid">'+pos.split('-')[1]+'</span>'
+   +(cg.name?'<span class="cname">'+esc(cg.name)+'</span>':'')
+   +'<span class="cnt">'+n+' 只'+(cg.pups?'+'+cg.pups.count+'仔':'')+(warn?' ⚠':'')+'</span></div>';
   }else{
    h+='<div class="cell'+(ui.moveFrom?' pulse':'')+'" onclick="cellClick(\''+pos+'\')"><span class="cnt">空</span></div>';
   }
@@ -625,7 +654,7 @@ function pBoard(){
  const sel=ui.selPos&&CAGES[ui.selPos]?ui.selPos:null;
  if(sel){
   const cg=CAGES[sel];
-  h+='<div class="card" style="background:#fbfcfe;"><h3>笼 '+sel+' <span class="tag gray">'+(cg.kind||'普通')+'</span>'
+  h+='<div class="card" style="background:#fbfcfe;"><h3>笼 '+sel+(cg.name?' <span class="tag p0">'+esc(cg.name)+'</span>':'')+' <span class="tag gray">'+(cg.kind||'普通')+'</span>'
   +(cg.pups?'<span class="tag amber">未断乳仔鼠 '+cg.pups.count+'</span>':'')+'<span class="rt">'+cg.mice.length+' 只在养</span></h3>';
   const pair=cg.pairId?PAIRS[cg.pairId]:null;
   if(pair)h+='<div class="small mut">繁育对 '+cg.pairId+'（'+pair.status+'）· 公 '+pair.sire+' × 母 '+pair.dams.join(' / ')+' · 合笼 '+pair.since+'</div>';
@@ -648,6 +677,7 @@ function pBoard(){
   const tds=activeTodos().filter(t=>t.cage===sel);
   tds.forEach(t=>h+='<div class="banner b-amber">⚠ '+t.title+'（'+t.due+'）<a style="cursor:pointer;color:var(--warn);margin-left:8px;" onclick="doneTodo(\''+t.id+'\')">确认完成</a></div>');
   h+='<div><button class="btn" onclick="boardMoveStart(\''+sel+'\')">移动笼子到空位</button>'
+  +'<button class="btn" onclick="boardRenameCage(\''+sel+'\')">✎ 自定义笼名</button>'
   +'<button class="btn" onclick="boardAddMice(\''+sel+'\')">＋ 加入老鼠</button>'
   +'<button class="btn" onclick="boardToggleKind(\''+sel+'\')">'+(cg.kind==='繁殖笼'?'转为普通笼':'设为繁殖笼')+'</button>'
   +'<button class="btn ghost" onclick="boardRemoveCage(\''+sel+'\')">移除笼子</button>'
@@ -803,6 +833,22 @@ function delCageSubmit(){
  toast('✓ 笼子 '+pos+' 已移除 · '+ids.length+' 只'+(dest==='archive'?'退回档案待分配':'已移入 '+dest));
 }
 function boardTodoOpen(pos){ui.wiz={step:'newTodo',pos:pos};renderModal();}
+/* 笼位自定义名称 */
+function boardRenameCage(pos){
+ const cg=CAGES[pos];if(!cg)return;
+ ui.wiz={step:'renameCage',pos:pos,name:cg.name||''};renderModal();
+}
+function renameCageSubmit(){
+ const w=ui.wiz;if(!w)return;
+ const v=($('rcName').value||'').trim();
+ if(v.length>12){toast('⛔ 名称最多 12 个字');return;}
+ const cg=CAGES[w.pos];if(!cg){ui.wiz=null;renderModal();return;}
+ const before=cg.name||'（无）';
+ cg.name=v||null;
+ cg.mice.forEach(id=>M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'笼位 '+w.pos+' 自定义名称：'+before+' → '+(v||'（无）'),cls:''}));
+ OPLOG.unshift({t:NOWT,text:'笼位 '+w.pos+' 自定义名称：'+before+' → '+(v||'（无）')+' · '+ui.user});
+ ui.wiz=null;renderModal();render();toast(v?'✓ '+w.pos+' 已命名为「'+v+'」':'✓ 已清除 '+w.pos+' 的自定义名称');
+}
 function todoSubmit(){
  const w=ui.wiz;const title=($('ntTitle').value||'').trim();
  if(!title){toast('请填写待办内容');return;}
@@ -824,8 +870,8 @@ function pScan(){
  +'<div class="pagedesc">日常操作入口：选择笼位 → 三步内完成当日操作（换笼 / 观察记录 / 产仔登记 / 查看待办）</div>';
  h+='<div class="grid2"><div>';
  h+='<div class="card"><h3>选择笼位</h3>'
- +'<div class="choice">'+Object.keys(CAGES).sort().map(p=>'<button onclick="scanCage(\''+p+'\')">'+p+'</button>').join('')+'</div>'
- +'<div class="scanrow"><input id="scanIn" placeholder="搜索笼号 / 鼠号，如 R1-A2"><button class="btn primary" onclick="scanInput()">查找</button></div>'
+ +'<div class="choice">'+Object.keys(CAGES).sort().map(p=>'<button onclick="scanCage(\''+p+'\')">'+cageLabel(p)+'</button>').join('')+'</div>'
+ +'<div class="scanrow"><input id="scanIn" placeholder="搜索笼号 / 笼名 / 鼠号，如 R1-A2"><button class="btn primary" onclick="scanInput()">查找</button></div>'
  +'<div class="smaller mut">未注册的鼠号可直接现场建档。</div></div>';
  h+='</div><div>';
  if(!ui.scan){h+='<div class="card"><h3>等待选择笼位…</h3><div class="mut small">左侧选择已有笼位，或搜索编号；也可先在「笼位看板」放入新笼。</div></div>';}
@@ -839,7 +885,7 @@ function pScan(){
  if(s.cage){
   const cg=CAGES[s.cage];
   if(!cg){ui.scan=null;return pScan();}
-   h+='<div class="card"><h3>笼 '+s.cage+' <span class="tag gray">'+(cg.kind||'普通')+'</span> <span class="rt">'+cg.mice.length+' 只在养</span></h3>';
+   h+='<div class="card"><h3>笼 '+s.cage+(cg.name?' <span class="tag p0">'+esc(cg.name)+'</span>':'')+' <span class="tag gray">'+(cg.kind||'普通')+'</span> <span class="rt">'+cg.mice.length+' 只在养</span></h3>';
    if(s.view==='menu'){
     h+='<div style="margin:6px 0;">'+cg.mice.map(id=>'<span class="chip id" onclick="archOpen(\''+id+'\')">'+sexChip(M[id].sex)+id+'</span>').join('')+(cg.pups?'<span class="chip amber">仔鼠 '+cg.pups.count+'（未断乳 · 无档案）</span>':'')+'</div>';
     h+='<div class="choice" style="flex-direction:column;align-items:stretch;">'
@@ -887,6 +933,8 @@ function scanCage(pos){ui.scan={cage:pos,view:'menu'};if(ui.cur!=='scan')nav('sc
 function scanInput(){
  const v=($('scanIn').value||'').trim();if(!v)return;
  if(CAGES[v]){scanCage(v);return;}
+ const byName=Object.keys(CAGES).find(p=>(CAGES[p].name||'')===v);
+ if(byName){scanCage(byName);return;}
  if(M[v]){toast('鼠码 → 跳转档案');archOpen(v);return;}
  ui.scan={err:v,view:'menu'};if(ui.cur!=='scan')nav('scan');else render();
 }
@@ -948,7 +996,7 @@ function renderModal(){
  const root=$('modalRoot');
  if(!ui.wiz){root.innerHTML='';return;}
  const w=ui.wiz;let h='<div class="modal-mask" onmousedown="ui._maskDown=event.target===this" onclick="if(event.target===this&&ui._maskDown)closeModal()"><div class="modal">';
- const mTitle=w.step==='newArch'?'新建档案':w.step==='newPlan'?'新建实验计划':w.step==='newUser'?'注册操作人':w.step==='newCage'?('放入新笼 · '+w.pos):w.step==='addMice'?('加入老鼠 · '+w.pos):w.step==='newBatch'?'新建送检批':w.step==='gmove'?('分笼 · 选择目标笼'):w.step==='delCage'?('移除笼子 · '+w.pos):w.step==='moveMice'?('移动老鼠 · 来自 '+w.pos):w.step==='newTodo'?('设置待办 · '+w.pos):w.step==='editMouse'?('修改基础字段 · '+w.mid):w.step==='share'?'分享 / 导入数据':w.step==='shareProg'?'正在导入…':w.step==='shareDone'?'导入成功':'死亡 / 离群登记';
+ const mTitle=w.step==='newArch'?'新建档案':w.step==='newPlan'?'新建实验计划':w.step==='newUser'?'注册操作人':w.step==='newCage'?('放入新笼 · '+w.pos):w.step==='addMice'?('加入老鼠 · '+w.pos):w.step==='newBatch'?'新建送检批':w.step==='gmove'?('分笼 · 选择目标笼'):w.step==='delCage'?('移除笼子 · '+w.pos):w.step==='moveMice'?('移动老鼠 · 来自 '+w.pos):w.step==='newTodo'?('设置待办 · '+w.pos):w.step==='renameCage'?('自定义笼名 · '+w.pos):w.step==='editMouse'?('修改基础字段 · '+w.mid):w.step==='share'?'分享 / 导入数据':w.step==='shareProg'?'正在导入…':w.step==='shareDone'?'导入成功':'死亡 / 离群登记';
  h+='<div class="m-head"><b>'+mTitle+'</b><span class="m-close" onclick="closeModal()">✕</span></div>';
  if(w.step==='newUser'){
   h+='<div class="b-blue banner">注册仅登记姓名，用于操作留痕与待办路由（无权限差异）。</div>'
@@ -977,7 +1025,7 @@ function renderModal(){
  if(w.step==='newBatch'){
   const pool=Object.values(M).filter(m=>m.status==='active').sort((a,b)=>((a.cage||'')<(b.cage||'')?-1:(a.cage||'')>(b.cage||'')?1:0));
   h+='<div class="b-blue banner">勾选要送检的在养鼠（可多选），创建送检批后在「基因型鉴定」页录入结果并一键分笼；同时生成「待鉴定」待办。</div>'
-  +'<span class="lbl">送检项目</span><div class="scanrow"><input type="text" id="nbAssay" value="Cre PCR"></div>'
+  +'<span class="lbl">送检项目</span><div class="scanrow"><input type="text" id="nbAssay" value="基因型鉴定（PCR）"></div>'
   +'<span class="lbl">选择老鼠（在养 '+pool.length+' 只 · 已选 '+w.sel.size+'）</span>'
   +(pool.length?pool.map(m=>'<div class="radio-row '+(w.sel.has(m.id)?'on':'')+'" onclick="ncToggle(\''+m.id+'\')"><b>'+m.sex+' '+m.id+'</b><span class="chip">'+(m.cage||'无笼位')+'</span><span class="mut smaller">'+m.strain+' · '+m.geno+'</span></div>').join(''):'<div class="mut small">暂无在养鼠可送检，请先建档。</div>')
   +'<button class="btn primary block" onclick="newBatchSubmit()" '+(w.sel.size?'':'disabled')+'>创建送检批（'+w.sel.size+' 只）</button>';
@@ -989,7 +1037,7 @@ function renderModal(){
   h+='<div class="b-blue banner">已选 <b>'+ui.gsel.size+'</b> 只。选择要移入的笼子：可合并入已有笼（无未断乳窝次的），也可放入空笼位自动建新笼；选择「自动分配」则按各行目标笼/空笼位依次落位。</div>'
   +'<span class="lbl">目标笼</span><div class="choice" style="max-height:300px;overflow-y:auto;">'
   +'<button class="'+(w.dest==='auto'?'on':'')+'" onclick="ui.wiz.dest=\'auto\';renderModal()">自动分配（按行目标笼）</button>'
-  +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">'+p+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
+  +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">'+cageLabel(p)+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
   +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">'+p+'（空笼位）</button>').join('')
   +'</div>'
   +'<button class="btn primary block" onclick="gmoveSubmit()">确认移入（'+ui.gsel.size+' 只 → '+(w.dest==='auto'?'自动分配':w.dest)+'）</button>';
@@ -1001,7 +1049,7 @@ function renderModal(){
   ['R1','R2'].forEach(rk=>ROWS.forEach(rw=>{for(let c=1;c<=6;c++){const p=rk+'-'+rw+c;if(!CAGES[p])empt.push(p);}}));
   h+='<div class="b-amber banner">笼位 <b>'+w.pos+'</b> 内还有 <b>'+n+'</b> 只在养鼠。移除笼子前请选择老鼠去向：移入其他笼，或退回「档案与谱系」待分配（无笼位，可稍后通过「放入新笼 / 加入老鼠」重新安排）。</div>'
   +'<span class="lbl">老鼠去向</span><div class="choice" style="max-height:300px;overflow-y:auto;">'
-  +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+p+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
+  +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+cageLabel(p)+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
   +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+p+'（空笼位）</button>').join('')
   +'<button class="'+(w.dest==='archive'?'on':'')+'" onclick="ui.wiz.dest=\'archive\';renderModal()">退回档案与谱系 · 待分配</button>'
   +'</div>'
@@ -1014,11 +1062,16 @@ function renderModal(){
   const selIds=[...(ui.moveSel||[])].filter(id=>M[id]&&M[id].cage===w.pos);
   h+='<div class="b-blue banner">已选 <b>'+selIds.length+'</b> 只（'+selIds.join('、')+'）。选择去向：移入其他笼（无未断乳窝次的），或退回「档案与谱系」待分配（无笼位，可稍后通过「放入新笼 / 加入老鼠」重新安排）。</div>'
   +'<span class="lbl">去向</span><div class="choice" style="max-height:300px;overflow-y:auto;">'
-  +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+p+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
+  +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+cageLabel(p)+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
   +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+p+'（空笼位）</button>').join('')
   +'<button class="'+(w.dest==='archive'?'on':'')+'" onclick="ui.wiz.dest=\'archive\';renderModal()">退回档案与谱系 · 待分配</button>'
   +'</div>'
   +'<button class="btn primary block" onclick="moveMiceSubmit()" '+(w.dest?'':'disabled')+'>确认移动（'+selIds.length+' 只 → '+(w.dest==='archive'?'档案待分配':w.dest||'请选择')+'）</button>';
+ }
+ if(w.step==='renameCage'){
+  h+='<div class="b-blue banner">为笼位 <b>'+w.pos+'</b> 设置自定义名称，便于区分用途（如「育种1」「实验A」）。名称会显示在笼位看板格、笼详情与各去向选择列表中；留空保存即清除。</div>'
+  +'<span class="lbl">自定义名称（最多 12 字）</span><div class="scanrow"><input type="text" id="rcName" value="'+esc(w.name||'')+'" placeholder="如 育种1 / 实验A"></div>'
+  +'<button class="btn primary block" onclick="renameCageSubmit()">保存名称</button>';
  }
  if(w.step==='newTodo'){
   h+='<div class="b-blue banner">为笼位 <b>'+w.pos+'</b> 设置一条自定义待办，设置后笼格会亮起提醒标记，并同步出现在首页待办。</div>'
@@ -1347,29 +1400,25 @@ function archNewSubmit(){
 
 /* ================= 基因型 FR-5 ================= */
 function genoLabel(r){
- if(r.cre==='无效'||r.flox==='无效')return '无效';
- if(r.cre==='待录入'||r.flox==='待录入')return '待录入';
- const c=r.cre==='+'?'H':r.cre==='−'?'WT':r.cre;
- const f=r.flox==='—'?'WT':r.flox==='flox/+'?'flox/H':r.flox;
- return 'Cre'+c+'; '+f;
+ if(r.geno==='无效')return '无效';
+ if(!r.geno||r.geno==='待录入')return '待录入';
+ return r.geno;
 }
 function pGeno(){
  let h='<div class="pagehead"><h1>基因型鉴定</h1><span class="frtag">FR-5</span></div>'
- +'<div class="pagedesc">送检 → 结果录入（点击结果格循环切换，模拟键盘速录 H/WT/±/F）→ 分笼辅助 · 「无效」不计入统计分母（S-7）</div>'
+ +'<div class="pagedesc">送检 → 结果录入（点击基因型格循环切换 H / WT / 无效）→ 分笼辅助 · 「无效」不计入统计分母（S-7）</div>'
  +'<div style="margin-bottom:10px;"><button class="btn primary" onclick="newBatchOpen()">＋ 新建送检批</button></div>';
  if(!BATCHES.length)h+='<div class="card"><h3>暂无送检批</h3><div class="mut small">点击上方「新建送检批」勾选在养鼠送检；或经「断乳」流程自动生成窝次送检批。</div></div>';
  BATCHES.forEach(b=>{
   h+='<div class="card"><h3>'+b.title+'<span class="tag '+(b.status.indexOf('待录入')>=0?'amber':'ok')+'">'+b.status+'</span>'
   +'<span class="rt">有效 '+b.rows.filter(r=>genoLabel(r)!=='无效'&&genoLabel(r)!=='待录入').length+' / '+b.rows.length+' <a style="cursor:pointer;color:var(--warn);margin-left:10px;" onclick="delBatch(\''+b.id+'\')">删除送检批</a></span></h3>';
-  h+='<table><tr><th></th><th>鼠 ID</th><th>性别</th><th>Cre（点击切换）</th><th>flox（点击切换）</th><th>基因型</th><th>来源</th><th>目标笼</th></tr>';
+  h+='<table><tr><th></th><th>鼠 ID</th><th>性别</th><th>基因型（点击切换）</th><th>来源</th><th>目标笼</th></tr>';
   b.rows.forEach(r=>{
    const lab=genoLabel(r);
    const canSel=!r.moved&&lab!=='无效'&&lab!=='待录入'&&M[r.mid]&&M[r.mid].status==='active';
    h+='<tr'+(r.moved?' style="opacity:.55;"':'')+'><td><input type="checkbox" '+(ui.gsel.has(r.mid)?'checked':'')+' '+(canSel?'':'disabled')+' onchange="gselToggle(\''+r.mid+'\')"></td>'
    +'<td><b>'+r.mid+'</b>'+(r.moved?' <span class="tag ok">已分笼</span>':' <a style="cursor:pointer;color:var(--warn);margin-left:6px;" title="从送检批移除" onclick="delBatchRow(\''+b.id+'\',\''+r.mid+'\')">✕</a>')+'</td><td>'+r.sex+'</td>'
-   +'<td class="gcell" onclick="gcell(\''+r.mid+'\',\'cre\')">'+genoCell(r.cre)+'</td>'
-   +'<td class="gcell" onclick="gcell(\''+r.mid+'\',\'flox\')">'+genoCell(r.flox)+'</td>'
-   +'<td>'+(lab==='无效'?'<span class="geno pend">无效-待重取</span>':lab==='待录入'?'<span class="geno pend">待录入</span>':genoBadge(lab))+'</td>'
+   +'<td class="gcell" onclick="gcell(\''+r.mid+'\',\'geno\')">'+genoCell(lab)+'</td>'
    +'<td class="smaller mut">'+r.src+'</td><td class="smaller">'+(r.moved?'<span class="tag ok">'+r.target+'</span>':r.target)+'</td></tr>';
   });
   h+='</table>';
@@ -1381,10 +1430,8 @@ function pGeno(){
  });
  return h;
 }
-function genoCell(v){if(v==='+')return '<span class="geno pos">H</span>';if(v==='−')return '<span class="geno neg">WT</span>';
- if(v==='±')return '<span class="geno pos">±</span>';if(v==='无效')return '<span class="geno pend">无效</span>';
- if(v==='flox/+')return '<span class="geno pos">flox/H</span>';if(v==='flox/flox')return '<span class="geno pos">flox/flox</span>';
- if(v==='—')return '<span class="geno neg">WT</span>';
+function genoCell(v){if(v==='H')return '<span class="geno pos">H</span>';if(v==='WT')return '<span class="geno neg">WT</span>';
+ if(v==='无效')return '<span class="geno pend">无效</span>';
  return '<span class="geno pend">待录入</span>';}
 function gselToggle(mid){if(ui.gsel.has(mid))ui.gsel.delete(mid);else ui.gsel.add(mid);render();}
 /* 删除送检批 / 批内鼠记录（已分笼的行与批不可删除，保证落位数据一致） */
@@ -1417,10 +1464,10 @@ function newBatchOpen(){ui.wiz={step:'newBatch',sel:new Set()};renderModal();}
 function newBatchSubmit(){
  const w=ui.wiz,ids=[...w.sel];
  if(!ids.length){toast('请至少选择 1 只鼠');return;}
- const assay=(($('nbAssay')||{}).value||'').trim()||'Cre PCR';
+ const assay=(($('nbAssay')||{}).value||'').trim()||'基因型鉴定（PCR）';
  const bid='TB-2026-'+String(BATCHES.length+1).padStart(3,'0');
  BATCHES.push({id:bid,title:'送检批 · '+assay+'（手动送检 '+ids.length+' 只）',status:'结果回收 · 待录入',
-  rows:ids.map(id=>({mid:id,sex:M[id].sex,cre:'待录入',flox:'待录入',src:M[id].cage?('笼位 '+M[id].cage):(M[id].source||'—'),target:'—'}))});
+  rows:ids.map(id=>({mid:id,sex:M[id].sex,geno:'待录入',src:M[id].cage?('笼位 '+M[id].cage):(M[id].source||'—'),target:'—'}))});
  TODOS.push({id:'t'+(todoSeq++),type:'鉴定',tone:'amber',title:'待鉴定 · '+bid+' 手动送检 '+ids.length+' 只',detail:'手动送检批 '+bid+'（'+assay+'）→ 结果录入（FR-5）',due:'送检时生成',batch:bid,done:false});
  OPLOG.unshift({t:NOWT,text:'新建送检批 '+bid+'（'+assay+'）· '+ids.length+' 只：'+ids.join(' / ')+' · '+ui.user});
  ui.wiz=null;renderModal();render();toast('✓ 送检批 '+bid+' 已创建 · 已生成「待鉴定」待办');
@@ -1428,10 +1475,10 @@ function newBatchSubmit(){
 function gcell(mid,f){
  let b=BATCHES.find(b=>b.rows.some(r=>r.mid===mid));
  const r=b.rows.find(r=>r.mid===mid);
- const cyc=CYC[f];let i=cyc.indexOf(r[f]);if(i<0)i=0;
- r[f]=cyc[(i+1)%cyc.length];
+ const cyc=CYC.geno;let i=cyc.indexOf(r.geno);if(i<0)i=0;
+ r.geno=cyc[(i+1)%cyc.length];
  const lab=genoLabel(r);
- if(M[mid]&&lab!=='待录入'){M[mid].geno=lab==='无效'?'无效':lab;}
+ if(M[mid]&&lab!=='待录入'){M[mid].geno=lab;}
  if(lab!=='无效'&&lab!=='待录入'){
   let closed=false;
   TODOS.forEach(t=>{if(t.type==='鉴定'&&t.mid===mid&&!t.done){t.done=true;closed=true;}});
