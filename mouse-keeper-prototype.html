@@ -283,6 +283,8 @@ function pairOffspring(p){
 }
 
 const CAGES={};
+/* 笼位自定义名称：独立于笼对象的映射，笼子移除 / 清空后名称依旧保留，可继续复用 */
+const CAGE_NAMES={};
 function initCage(pos,kind,pairId){ CAGES[pos]={pos,kind,pairId:pairId||null,mice:[],pups:null}; }
 Object.values(M).forEach(m=>{ if(m.cage&&CAGES[m.cage]&&m.status==='active') CAGES[m.cage].mice.push(m.id); });
 
@@ -311,7 +313,7 @@ let litterSeq=1;
 const LS_KEY='mousekeeper-data-v1';
 function saveData(){
  try{
-  const snap={PLANS,PLAN_OWNER,USERS,idSeq,M,CAGES,PAIRS,LITTERS,DEATHS,deathSeq,todoSeq,TODOS,OPLOG,BATCHES,litterSeq,IDENT_BASE:Array.from(IDENT_BASE)};
+  const snap={PLANS,PLAN_OWNER,USERS,idSeq,M,CAGES,CAGE_NAMES,PAIRS,LITTERS,DEATHS,deathSeq,todoSeq,TODOS,OPLOG,BATCHES,litterSeq,IDENT_BASE:Array.from(IDENT_BASE)};
   localStorage.setItem(LS_KEY,JSON.stringify(snap));
  }catch(e){/* 存储不可用或超限时静默跳过，不影响当前使用 */}
 }
@@ -319,9 +321,13 @@ function loadData(){
  try{
   const raw=localStorage.getItem(LS_KEY);if(!raw)return;
   const s=JSON.parse(raw);
-  [['PLANS',PLANS],['PLAN_OWNER',PLAN_OWNER],['M',M],['CAGES',CAGES],['PAIRS',PAIRS],['LITTERS',LITTERS]].forEach(function(pair){
+  [['PLANS',PLANS],['PLAN_OWNER',PLAN_OWNER],['M',M],['CAGES',CAGES],['CAGE_NAMES',CAGE_NAMES],['PAIRS',PAIRS],['LITTERS',LITTERS]].forEach(function(pair){
    Object.keys(pair[1]).forEach(k=>delete pair[1][k]);
    Object.keys(s[pair[0]]||{}).forEach(k=>pair[1][k]=s[pair[0]][k]);
+  });
+  // 兼容旧版本：笼名此前存在笼对象上，迁移到独立映射（笼子移除/清空后不再丢失）
+  Object.keys(CAGES).forEach(p=>{
+   if(CAGES[p].name){if(!CAGE_NAMES[p])CAGE_NAMES[p]=CAGES[p].name;delete CAGES[p].name;}
   });
   [['USERS',USERS],['DEATHS',DEATHS],['TODOS',TODOS],['OPLOG',OPLOG],['BATCHES',BATCHES]].forEach(function(pair){
    pair[1].length=0;(s[pair[0]]||[]).forEach(v=>pair[1].push(v));
@@ -370,9 +376,10 @@ function deathCat(r){if(r.pending)return '原因待确认';if(r.cause.indexOf('�
 function cageHasTodo(pos){return activeTodos().some(t=>t.cage===pos);}
 function emptyPositions(){const out=[];['R1','R2'].forEach(rk=>ROWS.forEach(rw=>{for(let c=1;c<=6;c++){const p=rk+'-'+rw+c;if(!CAGES[p])out.push(p);}}));return out;}
 function firstEmpty(){return emptyPositions()[0];}
-/* 笼位自定义名称：name 为空时仅显示笼位编号 */
-function cageName(pos){const c=CAGES[pos];return (c&&c.name)?c.name:'';}
+/* 笼位自定义名称：name 未设置时回退笼位编号 */
+function cageName(pos){return CAGE_NAMES[pos]||'';}
 function cageLabel(pos){const n=cageName(pos);return n?(pos+' · '+n):pos;}
+function cagePickLabel(pos){return cageName(pos)||pos;}
 function monthDeathCount(mo){return DEATHS.filter(r=>!r.revoked&&r.month===mo).length;}
 function usedCount(pid){return DEATHS.filter(r=>!r.revoked&&r.plan===pid).length;}
 function pendCount(pid){return DEATHS.filter(r=>!r.revoked&&r.pending&&r.plan===pid).length;}
@@ -432,7 +439,7 @@ function loginRegister(){
 }
 /* ================= 分享码：全量数据导出 / 导入 ================= */
 const SHARE_VER=2;
-function shareSnapshot(){return {v:SHARE_VER,app:'MouseKeeper',at:TODAY+' '+NOWT,idSeq:idSeq,todoSeq:todoSeq,litterSeq:litterSeq,M:M,CAGES:CAGES,DEATHS:DEATHS,PLANS:PLANS,PLAN_OWNER:PLAN_OWNER,USERS:USERS,TODOS:TODOS,BATCHES:BATCHES,PAIRS:PAIRS,LITTERS:LITTERS,OPLOG:OPLOG,ui:{user:ui.user,rack:ui.rack,loggedIn:ui.loggedIn}};}
+function shareSnapshot(){return {v:SHARE_VER,app:'MouseKeeper',at:TODAY+' '+NOWT,idSeq:idSeq,todoSeq:todoSeq,litterSeq:litterSeq,M:M,CAGES:CAGES,CAGE_NAMES:CAGE_NAMES,DEATHS:DEATHS,PLANS:PLANS,PLAN_OWNER:PLAN_OWNER,USERS:USERS,TODOS:TODOS,BATCHES:BATCHES,PAIRS:PAIRS,LITTERS:LITTERS,OPLOG:OPLOG,ui:{user:ui.user,rack:ui.rack,loggedIn:ui.loggedIn}};}
 function shareOpen(){ui.wiz={step:'share',tab:'out'};renderModal();}
 function shareTab(t){ui.wiz.tab=t;if(t==='out'){ui.wiz.code='';}renderModal();}
 function shareGen(){
@@ -470,7 +477,11 @@ function shareImportRun(snap){
  const steps=[
   ['校验快照结构',()=>{idSeq=snap.idSeq;todoSeq=snap.todoSeq;litterSeq=snap.litterSeq;}],
   ['导入鼠档案（'+Object.keys(snap.M).length+' 只）',()=>{Object.keys(M).forEach(k=>delete M[k]);Object.keys(snap.M).forEach(k=>M[k]=snap.M[k]);}],
-  ['导入笼位（'+Object.keys(snap.CAGES).length+' 个）',()=>{Object.keys(CAGES).forEach(k=>delete CAGES[k]);Object.keys(snap.CAGES).forEach(k=>CAGES[k]=snap.CAGES[k]);}],
+  ['导入笼位（'+Object.keys(snap.CAGES).length+' 个 / 自定义笼名 '+Object.keys(snap.CAGE_NAMES||{}).length+' 个）',()=>{
+   Object.keys(CAGES).forEach(k=>delete CAGES[k]);Object.keys(snap.CAGES).forEach(k=>CAGES[k]=snap.CAGES[k]);
+   Object.keys(CAGE_NAMES).forEach(k=>delete CAGE_NAMES[k]);Object.keys(snap.CAGE_NAMES||{}).forEach(k=>CAGE_NAMES[k]=snap.CAGE_NAMES[k]);
+   // 兼容旧分享码：笼名存在笼对象上 → 迁移到独立映射
+   Object.keys(CAGES).forEach(p=>{if(CAGES[p].name){if(!CAGE_NAMES[p])CAGE_NAMES[p]=CAGES[p].name;delete CAGES[p].name;}});}],
   ['导入终态记录（'+snap.DEATHS.length+' 条）',()=>{DEATHS.length=0;snap.DEATHS.forEach(r=>DEATHS.push(r));}],
   ['导入实验计划 / 繁育谱系',()=>{
    Object.keys(PLANS).forEach(k=>delete PLANS[k]);Object.keys(snap.PLANS).forEach(k=>PLANS[k]=snap.PLANS[k]);
@@ -643,10 +654,13 @@ function pBoard(){
    const n=cg.mice.length;
    h+='<div class="cell occ'+(warn?' warn-cell':'')+(ui.moveFrom===pos?' sel':'')+'" onclick="cellClick(\''+pos+'\')">'
    +'<span class="cid">'+pos.split('-')[1]+'</span>'
-   +(cg.name?'<span class="cname">'+esc(cg.name)+'</span>':'')
+   +(cageName(pos)?'<span class="cname">'+esc(cageName(pos))+'</span>':'')
    +'<span class="cnt">'+n+' 只'+(cg.pups?'+'+cg.pups.count+'仔':'')+(warn?' ⚠':'')+'</span></div>';
   }else{
-   h+='<div class="cell'+(ui.moveFrom?' pulse':'')+'" onclick="cellClick(\''+pos+'\')"><span class="cnt">空</span></div>';
+   // 空笼位：已命名的空笼位依旧显示自定义名称（名称独立保存，不受笼子是否在使用影响）
+   h+='<div class="cell'+(ui.moveFrom?' pulse':'')+'" onclick="cellClick(\''+pos+'\')">'
+   +(cageName(pos)?'<span class="cid">'+pos.split('-')[1]+'</span><span class="cname">'+esc(cageName(pos))+'</span>':'')
+   +'<span class="cnt">空</span></div>';
   }
  }});
  h+='</div>';
@@ -654,7 +668,7 @@ function pBoard(){
  const sel=ui.selPos&&CAGES[ui.selPos]?ui.selPos:null;
  if(sel){
   const cg=CAGES[sel];
-  h+='<div class="card" style="background:#fbfcfe;"><h3>笼 '+sel+(cg.name?' <span class="tag p0">'+esc(cg.name)+'</span>':'')+' <span class="tag gray">'+(cg.kind||'普通')+'</span>'
+  h+='<div class="card" style="background:#fbfcfe;"><h3>笼 '+sel+(cageName(sel)?' <span class="tag p0">'+esc(cageName(sel))+'</span>':'')+' <span class="tag gray">'+(cg.kind||'普通')+'</span>'
   +(cg.pups?'<span class="tag amber">未断乳仔鼠 '+cg.pups.count+'</span>':'')+'<span class="rt">'+cg.mice.length+' 只在养</span></h3>';
   const pair=cg.pairId?PAIRS[cg.pairId]:null;
   if(pair)h+='<div class="small mut">繁育对 '+cg.pairId+'（'+pair.status+'）· 公 '+pair.sire+' × 母 '+pair.dams.join(' / ')+' · 合笼 '+pair.since+'</div>';
@@ -833,19 +847,19 @@ function delCageSubmit(){
  toast('✓ 笼子 '+pos+' 已移除 · '+ids.length+' 只'+(dest==='archive'?'退回档案待分配':'已移入 '+dest));
 }
 function boardTodoOpen(pos){ui.wiz={step:'newTodo',pos:pos};renderModal();}
-/* 笼位自定义名称 */
+/* 笼位自定义名称：可对任意笼位（含空笼位）设置，名称独立保存，笼子移除/清空后依旧保留 */
 function boardRenameCage(pos){
- const cg=CAGES[pos];if(!cg)return;
- ui.wiz={step:'renameCage',pos:pos,name:cg.name||''};renderModal();
+ if(!pos)return;
+ ui.wiz={step:'renameCage',pos:pos,name:cageName(pos)};renderModal();
 }
 function renameCageSubmit(){
  const w=ui.wiz;if(!w)return;
  const v=($('rcName').value||'').trim();
  if(v.length>12){toast('⛔ 名称最多 12 个字');return;}
- const cg=CAGES[w.pos];if(!cg){ui.wiz=null;renderModal();return;}
- const before=cg.name||'（无）';
- cg.name=v||null;
- cg.mice.forEach(id=>M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'笼位 '+w.pos+' 自定义名称：'+before+' → '+(v||'（无）'),cls:''}));
+ const before=cageName(w.pos)||'（无）';
+ if(v)CAGE_NAMES[w.pos]=v;else delete CAGE_NAMES[w.pos];
+ const cg=CAGES[w.pos];
+ if(cg)cg.mice.forEach(id=>{if(M[id])M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'笼位 '+w.pos+' 自定义名称：'+before+' → '+(v||'（无）'),cls:''});});
  OPLOG.unshift({t:NOWT,text:'笼位 '+w.pos+' 自定义名称：'+before+' → '+(v||'（无）')+' · '+ui.user});
  ui.wiz=null;renderModal();render();toast(v?'✓ '+w.pos+' 已命名为「'+v+'」':'✓ 已清除 '+w.pos+' 的自定义名称');
 }
@@ -885,7 +899,7 @@ function pScan(){
  if(s.cage){
   const cg=CAGES[s.cage];
   if(!cg){ui.scan=null;return pScan();}
-   h+='<div class="card"><h3>笼 '+s.cage+(cg.name?' <span class="tag p0">'+esc(cg.name)+'</span>':'')+' <span class="tag gray">'+(cg.kind||'普通')+'</span> <span class="rt">'+cg.mice.length+' 只在养</span></h3>';
+   h+='<div class="card"><h3>笼 '+s.cage+(cageName(s.cage)?' <span class="tag p0">'+esc(cageName(s.cage))+'</span>':'')+' <span class="tag gray">'+(cg.kind||'普通')+'</span> <span class="rt">'+cg.mice.length+' 只在养</span></h3>';
    if(s.view==='menu'){
     h+='<div style="margin:6px 0;">'+cg.mice.map(id=>'<span class="chip id" onclick="archOpen(\''+id+'\')">'+sexChip(M[id].sex)+id+'</span>').join('')+(cg.pups?'<span class="chip amber">仔鼠 '+cg.pups.count+'（未断乳 · 无档案）</span>':'')+'</div>';
     h+='<div class="choice" style="flex-direction:column;align-items:stretch;">'
@@ -933,7 +947,7 @@ function scanCage(pos){ui.scan={cage:pos,view:'menu'};if(ui.cur!=='scan')nav('sc
 function scanInput(){
  const v=($('scanIn').value||'').trim();if(!v)return;
  if(CAGES[v]){scanCage(v);return;}
- const byName=Object.keys(CAGES).find(p=>(CAGES[p].name||'')===v);
+ const byName=Object.keys(CAGE_NAMES).find(p=>CAGE_NAMES[p]===v);
  if(byName){scanCage(byName);return;}
  if(M[v]){toast('鼠码 → 跳转档案');archOpen(v);return;}
  ui.scan={err:v,view:'menu'};if(ui.cur!=='scan')nav('scan');else render();
@@ -1008,12 +1022,12 @@ function renderModal(){
  if(w.step==='newPlan'){h+=renderModalPlan();h+='</div></div>';root.innerHTML=h;return;}
  if(w.step==='newCage'){
   const pool=Object.values(M).filter(m=>m.status==='active').sort((a,b)=>((a.cage||'')<(b.cage||'')?-1:(a.cage||'')>(b.cage||'')?1:0));
-  h+='<div class="b-blue banner">勾选要移入 <b>'+w.pos+'</b> 的在养鼠（可多选），并标记笼型；原笼清空后自动释放笼位。</div>'
+  h+='<div class="b-blue banner">勾选要移入 <b>'+cageLabel(w.pos)+'</b> 的在养鼠（可多选），并标记笼型；原笼清空后自动释放笼位。</div>'
   +'<span class="lbl">笼型标记</span><div class="choice">'+['普通','繁殖'].map(k=>'<button class="'+(w.kind===k?'on':'')+'" onclick="ncKind(\''+k+'\')">'+k+'笼</button>').join('')+'</div>'
   +'<span class="lbl">选择老鼠（在养 '+pool.length+' 只 · 已选 '+w.sel.size+'）</span>'
   +pool.map(m=>'<div class="radio-row '+(w.sel.has(m.id)?'on':'')+'" onclick="ncToggle(\''+m.id+'\')"><b>'+m.sex+' '+m.id+'</b><span class="chip">'+(m.cage||'无笼位')+'</span><span class="mut smaller">'+m.strain+' · '+m.geno+'</span></div>').join('')
   +'<button class="btn primary block" onclick="newCageSubmit()" '+(w.sel.size?'':'disabled')+'>确认放入（'+w.sel.size+' 只 → '+w.kind+'笼）</button>'
-  +'<div class="smaller mut" style="margin-top:6px;">没有合适的鼠？<a style="cursor:pointer;color:#2f6fed;" onclick="boardNewPurchased(\''+w.pos+'\')">新建 2 只外购鼠直接入笼</a></div>';
+  +'<div class="smaller mut" style="margin-top:6px;">没有合适的鼠？<a style="cursor:pointer;color:#2f6fed;" onclick="boardNewPurchased(\''+w.pos+'\')">新建 2 只外购鼠直接入笼</a> · <a style="cursor:pointer;color:#2f6fed;" onclick="boardRenameCage(\''+w.pos+'\')">'+(cageName(w.pos)?'修改笼位名称':'自定义笼位名称')+'</a></div>';
  }
  if(w.step==='addMice'){
   const pool=Object.values(M).filter(m=>m.status==='active'&&m.cage!==w.pos).sort((a,b)=>((a.cage||'')<(b.cage||'')?-1:(a.cage||'')>(b.cage||'')?1:0));
@@ -1038,7 +1052,7 @@ function renderModal(){
   +'<span class="lbl">目标笼</span><div class="choice" style="max-height:300px;overflow-y:auto;">'
   +'<button class="'+(w.dest==='auto'?'on':'')+'" onclick="ui.wiz.dest=\'auto\';renderModal()">自动分配（按行目标笼）</button>'
   +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">'+cageLabel(p)+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
-  +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">'+p+'（空笼位）</button>').join('')
+  +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">'+cageLabel(p)+'（空笼位）</button>').join('')
   +'</div>'
   +'<button class="btn primary block" onclick="gmoveSubmit()">确认移入（'+ui.gsel.size+' 只 → '+(w.dest==='auto'?'自动分配':w.dest)+'）</button>';
  }
@@ -1050,7 +1064,7 @@ function renderModal(){
   h+='<div class="b-amber banner">笼位 <b>'+w.pos+'</b> 内还有 <b>'+n+'</b> 只在养鼠。移除笼子前请选择老鼠去向：移入其他笼，或退回「档案与谱系」待分配（无笼位，可稍后通过「放入新笼 / 加入老鼠」重新安排）。</div>'
   +'<span class="lbl">老鼠去向</span><div class="choice" style="max-height:300px;overflow-y:auto;">'
   +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+cageLabel(p)+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
-  +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+p+'（空笼位）</button>').join('')
+  +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+cageLabel(p)+'（空笼位）</button>').join('')
   +'<button class="'+(w.dest==='archive'?'on':'')+'" onclick="ui.wiz.dest=\'archive\';renderModal()">退回档案与谱系 · 待分配</button>'
   +'</div>'
   +'<button class="btn primary block" onclick="delCageSubmit()" '+(w.dest?'':'disabled')+'>确认移除笼子 '+w.pos+'</button>';
@@ -1063,7 +1077,7 @@ function renderModal(){
   h+='<div class="b-blue banner">已选 <b>'+selIds.length+'</b> 只（'+selIds.join('、')+'）。选择去向：移入其他笼（无未断乳窝次的），或退回「档案与谱系」待分配（无笼位，可稍后通过「放入新笼 / 加入老鼠」重新安排）。</div>'
   +'<span class="lbl">去向</span><div class="choice" style="max-height:300px;overflow-y:auto;">'
   +occ.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+cageLabel(p)+'（'+CAGES[p].mice.length+' 只在养）</button>').join('')
-  +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+p+'（空笼位）</button>').join('')
+  +empt.map(p=>'<button class="'+(w.dest===p?'on':'')+'" onclick="ui.wiz.dest=\''+p+'\';renderModal()">移入 '+cageLabel(p)+'（空笼位）</button>').join('')
   +'<button class="'+(w.dest==='archive'?'on':'')+'" onclick="ui.wiz.dest=\'archive\';renderModal()">退回档案与谱系 · 待分配</button>'
   +'</div>'
   +'<button class="btn primary block" onclick="moveMiceSubmit()" '+(w.dest?'':'disabled')+'>确认移动（'+selIds.length+' 只 → '+(w.dest==='archive'?'档案待分配':w.dest||'请选择')+'）</button>';
@@ -1379,9 +1393,9 @@ function renderModalNew(){
  +'<span class="lbl">入笼位置'+(empt.length?'（'+empt.length+' 个空笼位）':'（无空笼位，将自动分配）')+'</span>'
  +'<div class="choice" style="max-height:160px;overflow-y:auto;">'
  +'<button class="'+(!w.cage?'on':'')+'" onclick="ui.wiz.cage=null;renderModal()">自动分配（首个空笼位）</button>'
- +empt.map(p=>'<button class="'+(w.cage===p?'on':'')+'" onclick="ui.wiz.cage=\''+p+'\';renderModal()">'+p+'</button>').join('')
+ +empt.map(p=>'<button class="'+(w.cage===p?'on':'')+'" onclick="ui.wiz.cage=\''+p+'\';renderModal()">'+esc(cagePickLabel(p))+'</button>').join('')
  +'</div>'
- +'<button class="btn primary block" onclick="archNewSubmit()">建档'+(w.cage?'（入笼 '+w.cage+'）':'（自动分配空笼位）')+'</button>';
+ +'<button class="btn primary block" onclick="archNewSubmit()">建档'+(w.cage?'（入笼 '+esc(cageLabel(w.cage))+'）':'（自动分配空笼位）')+'</button>';
 }
 function archNewSubmit(){
  const w=ui.wiz;let pos=w.cage;
