@@ -642,7 +642,7 @@ function execWean(lid,t){
 /* ================= 笼位看板 FR-1 ================= */
 function pBoard(){
  let h='<div class="pagehead"><h1>笼位看板</h1><span class="frtag">FR-1</span></div>'
- +'<div class="pagedesc">房间 A · 笼架网格 · 点击笼格查看详情；黄色 = 有未完成提醒；移动 / 新建即时持久化并写入留痕</div>';
+ +'<div class="pagedesc">房间 A · 笼架网格 · 点击笼格查看详情 · 双击笼格直接改名；黄色 = 有未完成提醒；移动 / 新建即时持久化并写入留痕</div>';
  h+='<div class="racktabs"><button class="'+(ui.rack==='R1'?'on':'')+'" onclick="ui.rack=\'R1\';render()">笼架 R1</button><button class="'+(ui.rack==='R2'?'on':'')+'" onclick="ui.rack=\'R2\';render()">笼架 R2</button></div>';
  h+='<div class="legend"><span class="l1"><i></i>正常</span><span class="l2"><i></i>有待办</span><span><i></i>空笼位</span>'
  +(ui.moveFrom?'<span class="b-red banner" style="margin:0;padding:2px 10px;">移动模式：点击目标空笼位 <a onclick="ui.moveFrom=null;render()" style="cursor:pointer;color:var(--warn);">取消</a></span>':'')+'</div>';
@@ -652,13 +652,13 @@ function pBoard(){
   if(cg){
    const warn=cageHasTodo(pos);
    const n=cg.mice.length;
-   h+='<div class="cell occ'+(warn?' warn-cell':'')+(ui.moveFrom===pos?' sel':'')+'" onclick="cellClick(\''+pos+'\')">'
+   h+='<div class="cell occ'+(warn?' warn-cell':'')+(ui.moveFrom===pos?' sel':'')+'" onclick="cellClick(\''+pos+'\')" ondblclick="dblRenameCage(\''+pos+'\')">'
    +'<span class="cid">'+pos.split('-')[1]+'</span>'
    +(cageName(pos)?'<span class="cname">'+esc(cageName(pos))+'</span>':'')
    +'<span class="cnt">'+n+' 只'+(cg.pups?'+'+cg.pups.count+'仔':'')+(warn?' ⚠':'')+'</span></div>';
   }else{
-   // 空笼位：已命名的空笼位依旧显示自定义名称（名称独立保存，不受笼子是否在使用影响）
-   h+='<div class="cell'+(ui.moveFrom?' pulse':'')+'" onclick="cellClick(\''+pos+'\')">'
+   // 空笼位：已命名的空笼位依旧显示自定义名称（名称独立保存，不受笼子是否在使用影响）；双击同样可直接改名
+   h+='<div class="cell'+(ui.moveFrom?' pulse':'')+'" onclick="cellClick(\''+pos+'\')" ondblclick="dblRenameCage(\''+pos+'\')">'
    +(cageName(pos)?'<span class="cid">'+pos.split('-')[1]+'</span><span class="cname">'+esc(cageName(pos))+'</span>':'')
    +'<span class="cnt">空</span></div>';
   }
@@ -848,6 +848,8 @@ function delCageSubmit(){
 }
 function boardTodoOpen(pos){ui.wiz={step:'newTodo',pos:pos};renderModal();}
 /* 笼位自定义名称：可对任意笼位（含空笼位）设置，名称独立保存，笼子移除/清空后依旧保留 */
+/* 双击笼格快捷改名：移动模式下忽略，避免干扰点选目标笼位 */
+function dblRenameCage(pos){if(ui.moveFrom)return;boardRenameCage(pos);}
 function boardRenameCage(pos){
  if(!pos)return;
  ui.wiz={step:'renameCage',pos:pos,name:cageName(pos)};renderModal();
