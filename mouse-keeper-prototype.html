@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -295,7 +295,7 @@ const CYC={cre:['待录入','+','−','±','无效'],flox:['待录入','flox/flo
 
 /* ================= 运行时状态 ================= */
 const ui={cur:'home',user:'王同学',rack:'R1',moveFrom:null,scan:null,archId:null,archQ:'',archStatus:'全部',archStrain:'全部',archRange:'全部',archMonth:'全部',archOldOpen:false,
- gsel:new Set(),wiz:null,attr:null,statStrain:'全部',statPend:false,statRange:'全部',statMonth:'全部',statOldOpen:false,newReg:{},moveSel:new Set()};
+ gsel:new Set(),wiz:null,attr:null,statStrain:'全部',statPend:false,statRange:'全部',statMonth:'全部',statOldOpen:false,newReg:{},moveSel:new Set(),loggedIn:false};
 let litterSeq=1;
 
 /* ================= 数据持久化（localStorage） =================
@@ -320,6 +320,10 @@ function loadData(){
    pair[1].length=0;(s[pair[0]]||[]).forEach(v=>pair[1].push(v));
   });
   if(!USERS.length)USERS.push('王同学');
+  // 恢复操作人：保存的用户必须在 USERS 中，否则回退到首个；无有效用户则保持未登录态
+  const sav=s.ui||{};
+  ui.user=(sav.user&&USERS.includes(sav.user))?sav.user:USERS[0]||null;
+  ui.loggedIn=!!(ui.user&&USERS.includes(ui.user));
   idSeq=s.idSeq||1;deathSeq=s.deathSeq||1;todoSeq=s.todoSeq||1;litterSeq=s.litterSeq||1;
   IDENT_BASE.clear();(s.IDENT_BASE||[]).forEach(id=>IDENT_BASE.add(id));
  }catch(e){/* 数据损坏时忽略，从空状态启动 */}
@@ -351,29 +355,57 @@ const TITLES={home:'首页待办',board:'笼位看板',scan:'工作台',arch:'�
 function nav(p){ui.cur=p;ui.attr=null;render();
  document.querySelectorAll('.side a').forEach(a=>a.classList.toggle('on',a.dataset.p===p));
  document.body.classList.remove('menu-open');}
-function setUser(v){ui.user=v;render();}
-function syncUserSel(){const sel=$('userSel');sel.innerHTML=USERS.map(u=>'<option '+(u===ui.user?'selected':'')+'>'+u+'</option>').join('');}
+function setUser(v){if(!v||!USERS.includes(v)){toast('⛔ 操作人无效');return;}ui.user=v;render();}
+function syncUserSel(){const sel=$('userSel');if(!sel)return;sel.innerHTML=USERS.length?USERS.map(u=>'<option '+(u===ui.user?'selected':'')+'>'+u+'</option>').join(''):'<option>—</option>';}
 function newUser(){ui.wiz={step:'newUser'};renderModal();}
 function userSubmit(){
  const name=($('nuName').value||'').trim();
  if(!name){toast('请填写姓名');return;}
  if(USERS.includes(name)){toast('该操作人已存在');return;}
- USERS.push(name);ui.user=name;
+ USERS.push(name);ui.user=name;ui.loggedIn=true;
  OPLOG.unshift({t:NOWT,text:'注册新操作人 '+name});
- closeModal();render();toast('✓ 已注册并切换为 '+name);
+ closeModal();render();toast('✓ 已注册并登录为 '+name);
 }
 function delUser(){
  if(USERS.length<=1){toast('⛔ 至少保留一名操作人');return;}
  const name=ui.user;
  if(!confirm('删除当前操作人「'+name+'」？\n历史留痕与时间线中的姓名保留不变。'))return;
  USERS.splice(USERS.indexOf(name),1);
- ui.user=USERS[0];
- OPLOG.unshift({t:NOWT,text:'删除操作人 '+name+' · 当前操作人切换为 '+ui.user});
- render();toast('✓ 已删除 '+name+' · 当前操作人：'+ui.user);
+ ui.user=USERS[0]||null;
+ if(!ui.user){ui.loggedIn=false;}
+ OPLOG.unshift({t:NOWT,text:'删除操作人 '+name+' · 当前操作人切换为 '+(ui.user||'（无）')});
+ render();toast('✓ 已删除 '+name+' · 当前操作人：'+(ui.user||'（无，请重新登录）'));
+}
+/* 登录 / 注册页面：无操作人时仅显示注册；有操作人时可选登录或注册 */
+function loginUser(name){if(!name||!USERS.includes(name)){toast('⛔ 请选择有效操作人');return;}ui.user=name;ui.loggedIn=true;render();toast('✓ 已登录为 '+name);}
+function pLogin(){
+ const w=ui.wiz&&ui.wiz.step==='newUser';
+ if(!USERS.length){
+  return '<div style="max-width:420px;margin:80px auto;"><div class="card"><h2>鼠仓 MouseKeeper</h2>'
+   +'<div class="b-amber banner">暂无操作人，请先注册。注册后即可使用全部功能，操作留痕将记录该姓名。</div>'
+   +'<span class="lbl">姓名 / 昵称</span><div class="scanrow"><input type="text" id="luName" placeholder="如 王同学"></div>'
+   +'<button class="btn primary block" onclick="loginRegister()">注册并登录</button></div></div>';
+ }
+ return '<div style="max-width:420px;margin:80px auto;"><div class="card"><h2>鼠仓 MouseKeeper</h2>'
+  +'<div class="b-blue banner">请选择操作人登录。留痕姓名仅用于操作记录与待办路由，无权限差异。</div>'
+  +'<span class="lbl">选择操作人</span><div class="choice">'
+  +USERS.map(u=>'<button onclick="loginUser(\''+u+'\')">'+u+'</button>').join('')
+  +'</div>'
+  +'<span class="lbl">或注册新操作人</span><div class="scanrow"><input type="text" id="luName" placeholder="如 赵同学"></div>'
+  +'<button class="btn block" onclick="loginRegister()">注册并登录</button>'
+  +'<div class="smaller mut" style="margin-top:8px;">共 '+USERS.length+' 名操作人 · 首次使用可直接注册</div></div></div>';
+}
+function loginRegister(){
+ const name=($('luName').value||'').trim();
+ if(!name){toast('请填写姓名');return;}
+ if(USERS.includes(name)){ui.user=name;ui.loggedIn=true;render();toast('已存在，直接登录为 '+name);return;}
+ USERS.push(name);ui.user=name;ui.loggedIn=true;
+ OPLOG.unshift({t:NOWT,text:'注册新操作人 '+name});
+ render();toast('✓ 已注册并登录为 '+name);
 }
 /* ================= 分享码：全量数据导出 / 导入 ================= */
 const SHARE_VER=2;
-function shareSnapshot(){return {v:SHARE_VER,app:'MouseKeeper',at:TODAY+' '+NOWT,idSeq:idSeq,todoSeq:todoSeq,litterSeq:litterSeq,M:M,CAGES:CAGES,DEATHS:DEATHS,PLANS:PLANS,PLAN_OWNER:PLAN_OWNER,USERS:USERS,TODOS:TODOS,BATCHES:BATCHES,PAIRS:PAIRS,LITTERS:LITTERS,OPLOG:OPLOG,ui:{user:ui.user,rack:ui.rack}};}
+function shareSnapshot(){return {v:SHARE_VER,app:'MouseKeeper',at:TODAY+' '+NOWT,idSeq:idSeq,todoSeq:todoSeq,litterSeq:litterSeq,M:M,CAGES:CAGES,DEATHS:DEATHS,PLANS:PLANS,PLAN_OWNER:PLAN_OWNER,USERS:USERS,TODOS:TODOS,BATCHES:BATCHES,PAIRS:PAIRS,LITTERS:LITTERS,OPLOG:OPLOG,ui:{user:ui.user,rack:ui.rack,loggedIn:ui.loggedIn}};}
 function shareOpen(){ui.wiz={step:'share',tab:'out'};renderModal();}
 function shareTab(t){ui.wiz.tab=t;if(t==='out'){ui.wiz.code='';}renderModal();}
 function shareGen(){
@@ -424,8 +456,9 @@ function shareImportRun(snap){
   ['导入操作人与日志',()=>{
    OPLOG.length=0;(snap.OPLOG||[]).forEach(r=>OPLOG.push(r));
    USERS.length=0;(snap.USERS||['王同学']).forEach(u=>USERS.push(u));
-   ui.user=(snap.ui&&snap.ui.user&&USERS.includes(snap.ui.user))?snap.ui.user:USERS[0];
-   ui.rack=(snap.ui&&snap.ui.rack)||'R1';}],
+   ui.user=(snap.ui&&snap.ui.user&&USERS.includes(snap.ui.user))?snap.ui.user:(USERS[0]||null);
+   ui.rack=(snap.ui&&snap.ui.rack)||'R1';
+   ui.loggedIn=!!(ui.user&&USERS.includes(ui.user));}],
   ['完成',null]
  ];
  ui.wiz={step:'shareProg',snap:snap,steps:steps,i:0,pct:0};
@@ -453,6 +486,8 @@ function shareImportTick(){
 }
 function render(){
  syncUserSel();
+ // 未登录或操作人无效时强制显示登录页
+ if(!ui.loggedIn||!ui.user||!USERS.includes(ui.user)){ui.loggedIn=false;$('tbTitle').textContent='登录 · 鼠仓 MouseKeeper';$('view').innerHTML=pLogin();return;}
  const n=activeTodos().filter(t=>t.tone!=='dim').length;$('todoBadge').textContent=n;
  $('tbTitle').textContent=TITLES[ui.cur]+' · 鼠仓 MouseKeeper';
  $('view').innerHTML=({home:pHome,board:pBoard,scan:pScan,arch:pArch,geno:pGeno,plans:pPlans,stats:pStats}[ui.cur])();
