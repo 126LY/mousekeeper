@@ -1276,28 +1276,38 @@ function pedTree(m){
 }
 function pedNode(m,center){return '<span class="ped-node'+(center?' center':'')+'" '+(center?'':'onclick="archOpen(\''+m.id+'\')" style="cursor:pointer;"')+'><span class="sex '+(m.sex==='♂'?'m':'f')+'">'+m.sex+'</span> '+(center?'<strong>'+m.id+'</strong>':m.id)+'<br>'+genoBadge(m.geno)+'</span>';}
 function archNew(){
- ui.wiz={step:'newArch',strain:'',sex:'♂',birth:'2026-06-01'};renderModal();
+ ui.wiz={step:'newArch',strain:'',sex:'♂',birth:'2026-06-01',cage:null};renderModal();
 }
 /* 新建档案走 modal */
 function renderModalNew(){
  const w=ui.wiz;
+ // 空笼位列表：两架 R1/R2，排除已占用
+ const empt=[];
+ ['R1','R2'].forEach(rk=>ROWS.forEach(rw=>{for(let c=1;c<=6;c++){const p=rk+'-'+rw+c;if(!CAGES[p])empt.push(p);}}));
  return '<div class="b-blue banner">手动建档（必填字段见 PRD 3.2）</div>'
  +'<span class="lbl">品系（手动输入）</span><div class="scanrow"><input type="text" id="naStrain" value="'+esc(w.strain||'')+'" placeholder="如 C57BL/6J、BALB/c、FVB/N …"></div>'
  +'<span class="lbl">性别</span><div class="choice">'+['♂','♀'].map(s=>'<button class="'+(w.sex===s?'on':'')+'" onclick="ui.wiz.strain=document.getElementById(\'naStrain\').value;ui.wiz.sex=\''+s+'\';renderModal()">'+s+'</button>').join('')+'</div>'
  +'<span class="lbl">出生日期（外购可填周龄反推并标记「约」）</span><div class="scanrow"><input type="date" id="naBirth" value="'+w.birth+'"></div>'
- +'<button class="btn primary block" onclick="archNewSubmit()">建档（自动分配空笼位）</button>';
+ +'<span class="lbl">入笼位置'+(empt.length?'（'+empt.length+' 个空笼位）':'（无空笼位，将自动分配）')+'</span>'
+ +'<div class="choice" style="max-height:160px;overflow-y:auto;">'
+ +'<button class="'+(!w.cage?'on':'')+'" onclick="ui.wiz.cage=null;renderModal()">自动分配（首个空笼位）</button>'
+ +empt.map(p=>'<button class="'+(w.cage===p?'on':'')+'" onclick="ui.wiz.cage=\''+p+'\';renderModal()">'+p+'</button>').join('')
+ +'</div>'
+ +'<button class="btn primary block" onclick="archNewSubmit()">建档'+(w.cage?'（入笼 '+w.cage+'）':'（自动分配空笼位）')+'</button>';
 }
 function archNewSubmit(){
- const w=ui.wiz;const pos=firstEmpty();if(!pos){toast('无空笼位');return;}
+ const w=ui.wiz;let pos=w.cage;
+ if(!pos){pos=firstEmpty();if(!pos){toast('无空笼位');return;}}
+ if(CAGES[pos]){toast('笼位 '+pos+' 已被占用');return;}
  const birthInput=$('naBirth');const birth=birthInput&&birthInput.value?birthInput.value:w.birth;
  const strainInput=$('naStrain');const strain=(strainInput?strainInput.value:w.strain||'').trim();
  if(!strain){toast('请填写品系');return;}
  const id=nid();
  CAGES[pos]={pos,kind:'普通',pairId:null,mice:[id],pups:null};
  addMouse({id,sex:w.sex,strain,birth,geno:'待鉴定',cage:pos,source:'手动建档',
-  events:[{t:TODAY+' '+NOWT,who:ui.user,text:'手动建档 · 入笼 '+pos,cls:''}]});
- OPLOG.unshift({t:NOWT,text:'新建档案 '+id+'（笼 '+pos+'）· '+ui.user});
- ui.wiz=null;renderModal();ui.archId=id;render();toast('✓ 已建档 '+id);
+  events:[{t:TODAY+' '+NOWT,who:ui.user,text:'手动建档 · 入笼 '+pos+(w.cage?'（手动指定）':'（自动分配）'),cls:''}]});
+ OPLOG.unshift({t:NOWT,text:'新建档案 '+id+'（笼 '+pos+(w.cage?' 手动指定':' 自动分配')+'）· '+ui.user});
+ ui.wiz=null;renderModal();ui.archId=id;render();toast('✓ 已建档 '+id+' → '+pos);
 }
 
 /* ================= 基因型 FR-5 ================= */
