@@ -643,7 +643,7 @@ function execWean(lid,t){
 function pBoard(){
  let h='<div class="pagehead"><h1>笼位看板</h1><span class="frtag">FR-1</span></div>'
  +'<div class="pagedesc">房间 A · 笼架网格 · 点击笼格查看详情 · 双击笼格直接改名；黄色 = 有未完成提醒；移动 / 新建即时持久化并写入留痕</div>';
- h+='<div class="racktabs"><button class="'+(ui.rack==='R1'?'on':'')+'" onclick="ui.rack=\'R1\';render()">笼架 R1</button><button class="'+(ui.rack==='R2'?'on':'')+'" onclick="ui.rack=\'R2\';render()">笼架 R2</button></div>';
+ h+='<div class="racktabs"><button class="'+(ui.rack==='R1'?'on':'')+'" onclick="ui.rack=\'R1\';render()">笼架 R1</button><button class="'+(ui.rack==='R2'?'on':'')+'" onclick="ui.rack=\'R2\';render()">笼架 R2</button><span style="flex:1;"></span><button class="btn" onclick="batchRenameOpen()">✎ 批量改名</button></div>';
  h+='<div class="legend"><span class="l1"><i></i>正常</span><span class="l2"><i></i>有待办</span><span><i></i>空笼位</span>'
  +(ui.moveFrom?'<span class="b-red banner" style="margin:0;padding:2px 10px;">移动模式：点击目标空笼位 <a onclick="ui.moveFrom=null;render()" style="cursor:pointer;color:var(--warn);">取消</a></span>':'')+'</div>';
  h+='<div class="rack">';
@@ -865,6 +865,51 @@ function renameCageSubmit(){
  OPLOG.unshift({t:NOWT,text:'笼位 '+w.pos+' 自定义名称：'+before+' → '+(v||'（无）')+' · '+ui.user});
  ui.wiz=null;renderModal();render();toast(v?'✓ '+w.pos+' 已命名为「'+v+'」':'✓ 已清除 '+w.pos+' 的自定义名称');
 }
+/* 批量改名：对当前笼架 30 个笼位（含空笼位）勾选后统一命名，支持前缀+起始号顺序填充 */
+function batchRenameOpen(){
+ if(!ui.wiz||ui.wiz.step!=='batchRename'){ui.wiz={step:'batchRename',rack:ui.rack,sel:null};}
+ ui.wiz.sel=new Set();
+ ROWS.forEach(rw=>{for(let c=1;c<=6;c++)ui.wiz.sel.add(ui.wiz.rack+'-'+rw+c);});
+ renderModal();
+}
+function brToggle(pos){const s=ui.wiz.sel;if(s.has(pos))s.delete(pos);else s.add(pos);}
+function brAll(v){ui.wiz.sel=new Set();if(v)ROWS.forEach(rw=>{for(let c=1;c<=6;c++)ui.wiz.sel.add(ui.wiz.rack+'-'+rw+c);});
+ document.querySelectorAll('[data-brchk]').forEach(el=>{el.checked=v;});}
+function brFill(){
+ const pfx=($('brPfx').value||'').trim();const start=parseInt($('brStart').value,10)||1;
+ if(!pfx){toast('请先填写名称前缀');return;}
+ let n=start;
+ ROWS.forEach(rw=>{for(let c=1;c<=6;c++){const pos=ui.wiz.rack+'-'+rw+c;
+  if(!ui.wiz.sel.has(pos))continue;
+  const el=$('brN_'+pos.replace('-','_'));if(el)el.value=pfx+'-'+(n++);
+ }});
+}
+function brApplyRack(rk){
+ if(!ui.wiz||ui.wiz.step!=='batchRename')ui.wiz={step:'batchRename',rack:rk,sel:null};
+ else ui.wiz.rack=rk;
+ batchRenameOpen();
+}
+function batchRenameSubmit(){
+ const w=ui.wiz;if(!w)return;
+ const items=[];let err=null;
+ ROWS.forEach(rw=>{for(let c=1;c<=6;c++){const pos=w.rack+'-'+rw+c;
+  if(!w.sel.has(pos))continue;
+  const el=$('brN_'+pos.replace('-','_'));const v=((el&&el.value)||'').trim();
+  if(v.length>12)err=pos;
+  if(v!==(cageName(pos)||''))items.push({pos:pos,v:v});
+ }});
+ if(err){toast('⛔ '+err+' 的名称超过 12 个字');return;}
+ if(!items.length){toast('没有需要保存的修改');return;}
+ let upd=0,clr=0;
+ items.forEach(it=>{
+  const before=cageName(it.pos);
+  if(it.v){CAGE_NAMES[it.pos]=it.v;upd++;}else{delete CAGE_NAMES[it.pos];clr++;}
+  const cg=CAGES[it.pos];
+  if(cg)cg.mice.forEach(id=>{if(M[id])M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'批量改名 · 笼位 '+it.pos+'：'+(before||'（无）')+' → '+(it.v||'（无）'),cls:''});});
+ });
+ OPLOG.unshift({t:NOWT,text:'笼位批量改名（架 '+w.rack+'）：更新 '+upd+' 个 · 清除 '+clr+' 个 · '+ui.user});
+ ui.wiz=null;renderModal();render();toast('✓ 批量改名完成：更新 '+upd+' 个'+(clr?' · 清除 '+clr+' 个':''));
+}
 function todoSubmit(){
  const w=ui.wiz;const title=($('ntTitle').value||'').trim();
  if(!title){toast('请填写待办内容');return;}
@@ -1012,7 +1057,7 @@ function renderModal(){
  const root=$('modalRoot');
  if(!ui.wiz){root.innerHTML='';return;}
  const w=ui.wiz;let h='<div class="modal-mask" onmousedown="ui._maskDown=event.target===this" onclick="if(event.target===this&&ui._maskDown)closeModal()"><div class="modal">';
- const mTitle=w.step==='newArch'?'新建档案':w.step==='newPlan'?'新建实验计划':w.step==='newUser'?'注册操作人':w.step==='newCage'?('放入新笼 · '+w.pos):w.step==='addMice'?('加入老鼠 · '+w.pos):w.step==='newBatch'?'新建送检批':w.step==='gmove'?('分笼 · 选择目标笼'):w.step==='delCage'?('移除笼子 · '+w.pos):w.step==='moveMice'?('移动老鼠 · 来自 '+w.pos):w.step==='newTodo'?('设置待办 · '+w.pos):w.step==='renameCage'?('自定义笼名 · '+w.pos):w.step==='editMouse'?('修改基础字段 · '+w.mid):w.step==='share'?'分享 / 导入数据':w.step==='shareProg'?'正在导入…':w.step==='shareDone'?'导入成功':'死亡 / 离群登记';
+ const mTitle=w.step==='newArch'?'新建档案':w.step==='newPlan'?'新建实验计划':w.step==='newUser'?'注册操作人':w.step==='newCage'?('放入新笼 · '+w.pos):w.step==='addMice'?('加入老鼠 · '+w.pos):w.step==='newBatch'?'新建送检批':w.step==='gmove'?('分笼 · 选择目标笼'):w.step==='delCage'?('移除笼子 · '+w.pos):w.step==='moveMice'?('移动老鼠 · 来自 '+w.pos):w.step==='newTodo'?('设置待办 · '+w.pos):w.step==='renameCage'?('自定义笼名 · '+w.pos):w.step==='batchRename'?('批量改名 · 架 '+w.rack):w.step==='editMouse'?('修改基础字段 · '+w.mid):w.step==='share'?'分享 / 导入数据':w.step==='shareProg'?'正在导入…':w.step==='shareDone'?'导入成功':'死亡 / 离群登记';
  h+='<div class="m-head"><b>'+mTitle+'</b><span class="m-close" onclick="closeModal()">✕</span></div>';
  if(w.step==='newUser'){
   h+='<div class="b-blue banner">注册仅登记姓名，用于操作留痕与待办路由（无权限差异）。</div>'
@@ -1088,6 +1133,29 @@ function renderModal(){
   h+='<div class="b-blue banner">为笼位 <b>'+w.pos+'</b> 设置自定义名称，便于区分用途（如「育种1」「实验A」）。名称会显示在笼位看板格、笼详情与各去向选择列表中；留空保存即清除。</div>'
   +'<span class="lbl">自定义名称（最多 12 字）</span><div class="scanrow"><input type="text" id="rcName" value="'+esc(w.name||'')+'" placeholder="如 育种1 / 实验A"></div>'
   +'<button class="btn primary block" onclick="renameCageSubmit()">保存名称</button>';
+ }
+ if(w.step==='batchRename'){
+  const allOn=w.sel.size===30;
+  h+='<div class="b-blue banner">为架 <b>'+w.rack+'</b> 的笼位批量命名：勾选要处理的笼位（含空笼位），可手动逐个填写，或用下方「前缀+起始号」一键顺序填充；输入框留空的勾选项保存后即清除名称。</div>'
+  +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">'
+  +'<button class="btn '+(w.rack==='R1'?'primary':'')+'" onclick="brApplyRack(\'R1\')">架 R1</button>'
+  +'<button class="btn '+(w.rack==='R2'?'primary':'')+'" onclick="brApplyRack(\'R2\')">架 R2</button>'
+  +'</div>'
+  +'<span class="lbl">快捷填充</span><div class="scanrow"><input type="text" id="brPfx" placeholder="前缀，如 实验A" style="flex:1;"><input type="number" id="brStart" value="1" min="1" style="width:64px;"><button class="btn" onclick="brFill()">填充选中项</button></div>'
+  +'<div class="smaller mut" style="margin:2px 0 6px;">按 A1→E6 行序为勾选笼位依次编号（如 实验A-1、实验A-2 …）</div>'
+  +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span class="lbl" style="margin:0;">笼位清单（已选 '+w.sel.size+'/30）</span>'
+  +'<label class="smaller" style="cursor:pointer;"><input type="checkbox" '+(allOn?'checked':'')+' onchange="brAll(this.checked)"> 全选 / 全不选</label></div>'
+  +'<div style="max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:6px;">';
+  ROWS.forEach(rw=>{for(let c=1;c<=6;c++){const pos=w.rack+'-'+rw+c;const has=CAGES[pos];const nm=cageName(pos);
+   h+='<div style="display:flex;gap:6px;align-items:center;padding:3px 0;border-bottom:1px dashed var(--line);">'
+   +'<input type="checkbox" data-brchk '+(w.sel.has(pos)?'checked':'')+' onchange="brToggle(\''+pos+'\')">'
+   +'<b style="width:52px;font-size:12px;">'+pos.split('-')[1]+'</b>'
+   +'<span class="chip '+(has?'':'amber')+'" style="width:44px;text-align:center;">'+(has?(CAGES[pos].mice.length+' 只'):'空')+'</span>'
+   +'<input type="text" id="brN_'+pos.replace('-','_')+'" value="'+esc(nm)+'" placeholder="（无名称）" maxlength="12" style="flex:1;padding:3px 8px;font-size:12px;">'
+   +'</div>';
+  }});
+  h+='</div>'
+  +'<button class="btn primary block" onclick="batchRenameSubmit()">保存全部（仅勾选项 · 已选 '+w.sel.size+'）</button>';
  }
  if(w.step==='newTodo'){
   h+='<div class="b-blue banner">为笼位 <b>'+w.pos+'</b> 设置一条自定义待办，设置后笼格会亮起提醒标记，并同步出现在首页待办。</div>'
