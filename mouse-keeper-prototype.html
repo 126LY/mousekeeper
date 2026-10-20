@@ -896,19 +896,37 @@ function batchRenameSubmit(){
   if(!w.sel.has(pos))continue;
   const el=$('brN_'+pos.replace('-','_'));const v=((el&&el.value)||'').trim();
   if(v.length>12)err=pos;
-  if(v!==(cageName(pos)||''))items.push({pos:pos,v:v});
+  if(v!==(cageName(pos)||''))items.push({pos:pos,v:v,before:cageName(pos)});
  }});
  if(err){toast('⛔ '+err+' 的名称超过 12 个字');return;}
  if(!items.length){toast('没有需要保存的修改');return;}
  let upd=0,clr=0;
  items.forEach(it=>{
-  const before=cageName(it.pos);
   if(it.v){CAGE_NAMES[it.pos]=it.v;upd++;}else{delete CAGE_NAMES[it.pos];clr++;}
   const cg=CAGES[it.pos];
-  if(cg)cg.mice.forEach(id=>{if(M[id])M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'批量改名 · 笼位 '+it.pos+'：'+(before||'（无）')+' → '+(it.v||'（无）'),cls:''});});
+  if(cg)cg.mice.forEach(id=>{if(M[id])M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'批量改名 · 笼位 '+it.pos+'：'+(it.before||'（无）')+' → '+(it.v||'（无）'),cls:''});});
  });
  OPLOG.unshift({t:NOWT,text:'笼位批量改名（架 '+w.rack+'）：更新 '+upd+' 个 · 清除 '+clr+' 个 · '+ui.user});
- ui.wiz=null;renderModal();render();toast('✓ 批量改名完成：更新 '+upd+' 个'+(clr?' · 清除 '+clr+' 个':''));
+ ui.lastBatchRename={rack:w.rack,changes:items,at:TODAY+' '+NOWT,who:ui.user};
+ ui.wiz=null;renderModal();render();toast('✓ 批量改名完成：更新 '+upd+' 个'+(clr?' · 清除 '+clr+' 个':'')+' · 可在批量改名弹窗撤销');
+}
+/* 批量改名撤销：恢复最近一次批量改名涉及的笼位到改名前名称（一次性，撤销后记录清除） */
+function batchRenameUndo(){
+ const r=ui.lastBatchRename;
+ if(!r){toast('没有可撤销的批量改名记录');return;}
+ let n=0;
+ r.changes.forEach(it=>{
+  const cur=cageName(it.pos);
+  const to=it.before||null;
+  if((to||'')===cur)return; // 已被后续手动改过且恰好同名，跳过
+  if(to)CAGE_NAMES[it.pos]=to;else delete CAGE_NAMES[it.pos];
+  n++;
+  const cg=CAGES[it.pos];
+  if(cg)cg.mice.forEach(id=>{if(M[id])M[id].events.push({t:TODAY+' '+NOWT,who:ui.user,text:'批量改名撤销 · 笼位 '+it.pos+'：'+(cur||'（无）')+' → '+(to||'（无）'),cls:''});});
+ });
+ OPLOG.unshift({t:NOWT,text:'批量改名撤销（架 '+r.rack+' · '+r.at+' 的操作）：恢复 '+n+' 个笼位名称 · '+ui.user});
+ ui.lastBatchRename=null;
+ render();toast(n?'✓ 已撤销上次批量改名：恢复 '+n+' 个笼位名称':'该批次名称已被还原，无需撤销');
 }
 function todoSubmit(){
  const w=ui.wiz;const title=($('ntTitle').value||'').trim();
@@ -1137,6 +1155,7 @@ function renderModal(){
  if(w.step==='batchRename'){
   const allOn=w.sel.size===30;
   h+='<div class="b-blue banner">为架 <b>'+w.rack+'</b> 的笼位批量命名：勾选要处理的笼位（含空笼位），可手动逐个填写，或用下方「前缀+起始号」一键顺序填充；输入框留空的勾选项保存后即清除名称。</div>'
+  +(ui.lastBatchRename?'<div class="banner b-amber">↩ 最近一次批量改名：架 '+ui.lastBatchRename.rack+' · '+ui.lastBatchRename.changes.length+' 处 · '+ui.lastBatchRename.at+' · <a style="cursor:pointer;color:var(--warn);" onclick="batchRenameUndo()">撤销该操作</a></div>':'')
   +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">'
   +'<button class="btn '+(w.rack==='R1'?'primary':'')+'" onclick="brApplyRack(\'R1\')">架 R1</button>'
   +'<button class="btn '+(w.rack==='R2'?'primary':'')+'" onclick="brApplyRack(\'R2\')">架 R2</button>'
