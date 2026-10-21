@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -17,8 +17,8 @@
 --card:#fff;--mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;font-size:14px;}
-.app{display:grid;grid-template-columns:216px 1fr;height:100vh;}
-.side{background:var(--card);border-right:1px solid var(--line);padding:20px 14px;overflow-y:auto;}
+.app{display:grid;grid-template-columns:216px 1fr;height:100vh;overflow:hidden;}
+.side{background:var(--card);border-right:1px solid var(--line);padding:20px 14px;overflow-y:auto;min-height:0;}
 .side .logo{font-weight:700;font-size:17px;}
 .side .ver{font-size:11.5px;color:var(--sub);margin:2px 0 18px;}
 .side a{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:13.5px;margin:2px 0;cursor:pointer;}
@@ -29,7 +29,7 @@ body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-s
 .badge{background:var(--warn);color:#fff;font-size:10.5px;font-weight:700;border-radius:10px;padding:0 7px;line-height:17px;min-width:17px;text-align:center;}
 .side a.on .badge{background:#fff;color:var(--brand);}
 .side .foot{margin-top:22px;padding-top:14px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--sub);}
-.main{display:flex;flex-direction:column;min-width:0;}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;}
 .topbar{background:var(--card);border-bottom:1px solid var(--line);padding:10px 28px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
 .topbar .tb-title{font-weight:700;font-size:15px;}
 .topbar .tb-right{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--sub);}
@@ -147,6 +147,8 @@ input[type=text],input[type=date],select.pg{border:1px solid var(--line);border-
 /* ===== 移动端适配（桌面端样式完全不变） ===== */
 .hamb{display:none;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:17px;line-height:1;padding:6px 11px;cursor:pointer;color:var(--ink);}
 .side-mask{display:none;position:fixed;inset:0;background:rgba(26,35,50,.45);z-index:55;}
+/* 桌面端：整页不滚动，只有 .view 内容区滚动，侧栏与顶栏保持固定 */
+@media (min-width:861px){body{overflow:hidden;}}
 @media (max-width:860px){
   .app{grid-template-columns:1fr;height:auto;min-height:100vh;}
   .side{position:fixed;left:0;top:0;bottom:0;width:min(78vw,300px);z-index:60;transform:translateX(-105%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.18);padding-bottom:calc(20px + env(safe-area-inset-bottom));overscroll-behavior:contain;}
@@ -307,20 +309,48 @@ const ui={cur:'home',user:'王同学',rack:'R1',moveFrom:null,scan:null,archId:n
  gsel:new Set(),wiz:null,attr:null,statStrain:'全部',statPend:false,statRange:'全部',statMonth:'全部',statOldOpen:false,newReg:{},moveSel:new Set(),loggedIn:false};
 let litterSeq=1;
 
-/* ================= 数据持久化（localStorage） =================
-   所有业务数据均为 const 声明的内存结构，采用「清空键+逐键赋值」方式写回，
-   在 render() 末尾统一调用 saveData()，任何操作后自动落盘 */
+/* ================= 数据持久化（IndexedDB 数据库 + localStorage 回退） =================
+   主存储为浏览器原生 IndexedDB 数据库（mousekeeper-db），纯前端、零服务器；
+   localStorage 作为回退与旧版本迁移来源。所有业务数据均为 const 声明的内存结构，
+   采用「清空键+逐键赋值」方式写回，在 render() 末尾统一调用 saveData()，任何操作后自动落盘。
+   分享码导出/导入基于同一份快照，导入完成后经 render()→saveData() 自动写入数据库。 */
 const LS_KEY='mousekeeper-data-v1';
+const IDB_NAME='mousekeeper-db',IDB_STORE='kv',IDB_KEY='snapshot';
+let _dbP=null;
+function dbOpen(){ // 打开/复用数据库连接，失败时降级（隐私模式等场景）
+ if(_dbP)return _dbP;
+ _dbP=new Promise(function(res,rej){
+  try{
+   if(!('indexedDB' in window))return rej(new Error('no idb'));
+   const req=indexedDB.open(IDB_NAME,1);
+   req.onupgradeneeded=function(e){e.target.result.createObjectStore(IDB_STORE);};
+   req.onsuccess=function(e){res(e.target.result);};
+   req.onerror=function(){rej(req.error||new Error('idb open failed'));};
+  }catch(e){rej(e);}
+ });
+ return _dbP;
+}
+function dbSave(json){ // 异步落库，静默失败不影响页面使用
+ dbOpen().then(function(db){db.transaction(IDB_STORE,'readwrite').objectStore(IDB_STORE).put(json,IDB_KEY);}).catch(function(){});
+}
+function dbLoad(){
+ return dbOpen().then(function(db){return new Promise(function(res,rej){
+  const rq=db.transaction(IDB_STORE,'readonly').objectStore(IDB_STORE).get(IDB_KEY);
+  rq.onsuccess=function(){res(rq.result||null);};
+  rq.onerror=function(){rej(rq.error);};
+ });});
+}
+function makeSnap(){ // 全量业务快照，与分享码数据结构保持一致（含登录态，刷新不丢失）
+ return {PLANS,PLAN_OWNER,USERS,idSeq,M,CAGES,CAGE_NAMES,PAIRS,LITTERS,DEATHS,deathSeq,todoSeq,TODOS,OPLOG,BATCHES,litterSeq,IDENT_BASE:Array.from(IDENT_BASE),ui:{user:ui.user,rack:ui.rack,loggedIn:ui.loggedIn}};
+}
 function saveData(){
  try{
-  const snap={PLANS,PLAN_OWNER,USERS,idSeq,M,CAGES,CAGE_NAMES,PAIRS,LITTERS,DEATHS,deathSeq,todoSeq,TODOS,OPLOG,BATCHES,litterSeq,IDENT_BASE:Array.from(IDENT_BASE)};
-  localStorage.setItem(LS_KEY,JSON.stringify(snap));
+  const json=JSON.stringify(makeSnap());
+  dbSave(json); // 主写 IndexedDB 数据库
+  localStorage.setItem(LS_KEY,json); // 回退写 localStorage
  }catch(e){/* 存储不可用或超限时静默跳过，不影响当前使用 */}
 }
-function loadData(){
- try{
-  const raw=localStorage.getItem(LS_KEY);if(!raw)return;
-  const s=JSON.parse(raw);
+function applySnapshot(s){ // 将快照对象恢复到内存结构（供数据库 / localStorage / 启动迁移共用）
   [['PLANS',PLANS],['PLAN_OWNER',PLAN_OWNER],['M',M],['CAGES',CAGES],['CAGE_NAMES',CAGE_NAMES],['PAIRS',PAIRS],['LITTERS',LITTERS]].forEach(function(pair){
    Object.keys(pair[1]).forEach(k=>delete pair[1][k]);
    Object.keys(s[pair[0]]||{}).forEach(k=>pair[1][k]=s[pair[0]][k]);
@@ -354,14 +384,13 @@ function loadData(){
   ui.loggedIn=!!(ui.user&&USERS.includes(ui.user));
   idSeq=s.idSeq||1;deathSeq=s.deathSeq||1;todoSeq=s.todoSeq||1;litterSeq=s.litterSeq||1;
   IDENT_BASE.clear();(s.IDENT_BASE||[]).forEach(id=>IDENT_BASE.add(id));
- }catch(e){/* 数据损坏时忽略，从空状态启动 */}
 }
 
 /* ================= 工具 ================= */
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
-function ageTxt(b){const raw=b.replace(/^约\s*/,'');const d=Math.floor((new Date(TODAY)-new Date(raw))/86400000);if(isNaN(d))return '—';return d<60?(d+' 日龄'):(d/30.4).toFixed(1)+' 月龄';}
+function ageTxt(b){const raw=(b||'').replace(/^约\s*/,'');if(!raw)return '—';const d=Math.floor((new Date(TODAY)-new Date(raw))/86400000);if(isNaN(d))return '—';return d<60?(d+' 日龄'):(d/30.4).toFixed(1)+' 月龄';}
 function sexChip(s){return s==='♂'?'<span class="chip m">♂</span>':'<span class="chip f">♀</span>';}
 function genoBadge(g){if(!g||g==='待鉴定'||g==='无效'||g==='待录入')return '<span class="geno pend">'+(g||'待录入')+'</span>';
  if(g==='WT')return '<span class="geno neg">WT</span>';
@@ -467,13 +496,55 @@ function shareImport(){
   if(o.v>SHARE_VER){toast('⛔ 分享码数据版本 v'+o.v+' 高于当前原型支持的 v'+SHARE_VER+'\n该码可能由更新版本生成，请升级原型后再导入');return;}
   snap=o;
  }catch(e){toast('⛔ 分享码无效或已损坏');return;}
- const vMsg=snap.v===SHARE_VER?'数据版本 v'+snap.v+'（与当前一致）':'数据版本 v'+snap.v+'（低于当前 v'+SHARE_VER+'，将按兼容模式导入）';
- // 导入前先兜底导出当前快照
+ // 深度数据校验：生成校验报告与当前数据备份码，先展示确认面板再导入
  let backup='';try{backup=btoa(unescape(encodeURIComponent(JSON.stringify(shareSnapshot()))));}catch(e){}
- if(!confirm('导入将完全覆盖当前所有数据（鼠 / 笼位 / 终态 / 计划 / 待办 / 日志），确认导入？\n\n'+vMsg+(snap.at?' · 快照生成于 '+snap.at:'')+'\n\n当前快照备份码（可先复制保存）：\n'+backup.slice(0,120)+'…\n\n点「确定」开始导入。'))return;
- try{ shareImportRun(snap); }catch(e){ ui.wiz=null;renderModal();toast('⛔ 导入启动失败：'+e.message+'，数据未被改动'); }
+ ui.wiz={step:'shareCheck',snap:snap,report:shareValidate(snap),backup:backup};
+ renderModal();
 }
-function shareImportRun(snap){
+/* 分享码数据校验：返回 {fatals:[], warns:[], counts:{}}；fatals 非空时禁止导入 */
+function shareValidate(o){
+ const fatals=[],warns=[];
+ // 来源与时间
+ if(!o.app)warns.push('分享码缺少应用标识，可能并非鼠仓 MouseKeeper 生成');
+ else if(o.app!=='MouseKeeper')warns.push('应用标识为「'+o.app+'」，非本应用生成的分享码，请确认来源可信');
+ if(!o.at)warns.push('缺少快照生成时间，无法确认数据新旧');
+ // 必备结构类型（错误即阻断）
+ [['M','鼠档案'],['CAGES','笼位']].forEach(function(p){const v=o[p[0]];if(!v||typeof v!=='object'||Array.isArray(v))fatals.push(p[1]+'结构类型错误');});
+ [['DEATHS','终态记录'],['TODOS','待办']].forEach(function(p){if(!Array.isArray(o[p[0]]))fatals.push(p[1]+'结构类型错误');});
+ if(fatals.length)return {fatals:fatals,warns:warns,counts:null};
+ const ms=Object.values(o.M);
+ // 鼠档案字段完整性
+ const missF=ms.filter(m=>!m||!m.id||!m.sex||!m.status||!m.birth).length;
+ if(missF)warns.push(missF+' 只鼠档案缺少基础字段（编号/性别/状态/出生日期），导入后可能显示异常');
+ // 引用一致性：鼠 → 笼
+ const miceCageMiss=ms.filter(m=>m&&m.cage&&!o.CAGES[m.cage]).length;
+ if(miceCageMiss)warns.push(miceCageMiss+' 只鼠登记的笼位在快照笼位表中不存在，笼位看板可能显示不一致');
+ // 引用一致性：笼 → 鼠（脏引用）
+ let cageMiss=0;
+ Object.values(o.CAGES).forEach(c=>{((c&&c.mice)||[]).forEach(id=>{if(!o.M[id])cageMiss++;});});
+ if(cageMiss)warns.push(cageMiss+' 个笼内鼠引用在鼠档案中不存在（脏引用），导入后将残留空引用');
+ // 终态记录 / 待办字段
+ const dMiss=o.DEATHS.filter(r=>!r||!r.id||!r.cause).length;
+ if(dMiss)warns.push(dMiss+' 条终态记录缺少鼠编号或死因，存活统计可能归类异常');
+ const tMiss=o.TODOS.filter(t=>!t||!t.text).length;
+ if(tMiss)warns.push(tMiss+' 条待办缺少内容，导入后无法正常显示');
+ // 操作人
+ if(!Array.isArray(o.USERS)||!o.USERS.length)warns.push('快照未包含操作人列表，导入后将回退为默认操作人');
+ const counts={mice:ms.length,cages:Object.keys(o.CAGES).length,bc:Object.values(o.CAGES).filter(c=>c.kind==='繁殖笼').length,deaths:o.DEATHS.length,pend:o.DEATHS.filter(r=>r.pending&&!r.revoked).length,todos:o.TODOS.filter(t=>!t.done).length,plans:Object.keys(o.PLANS||{}).length,batches:(o.BATCHES||[]).length,users:(o.USERS||[]).length};
+ return {fatals:fatals,warns:warns,counts:counts};
+}
+function shareImportGo(){
+ const w=ui.wiz;if(!w||w.step!=='shareCheck')return;
+ try{ shareImportRun(w.snap,w.report); }catch(e){ ui.wiz=null;renderModal();toast('⛔ 导入启动失败：'+e.message+'，数据未被改动'); }
+}
+function shareBackIn(){ui.wiz={step:'share',tab:'in'};renderModal();}
+function shareBackupCopy(){
+ const el=$('shareBackup');if(!el)return;
+ el.select();try{el.setSelectionRange(0,el.value.length);}catch(e){}
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.value).then(()=>toast('✓ 备份码已复制'),()=>toast('复制失败，请手动全选复制'));}
+ else{try{document.execCommand('copy');toast('✓ 备份码已复制');}catch(e){toast('请手动全选复制');}}
+}
+function shareImportRun(snap,report){
  const steps=[
   ['校验快照结构',()=>{idSeq=snap.idSeq;todoSeq=snap.todoSeq;litterSeq=snap.litterSeq;}],
   ['导入鼠档案（'+Object.keys(snap.M).length+' 只）',()=>{Object.keys(M).forEach(k=>delete M[k]);Object.keys(snap.M).forEach(k=>M[k]=snap.M[k]);}],
@@ -499,7 +570,7 @@ function shareImportRun(snap){
    ui.loggedIn=!!(ui.user&&USERS.includes(ui.user));}],
   ['完成',null]
  ];
- ui.wiz={step:'shareProg',snap:snap,steps:steps,i:0,pct:0};
+ ui.wiz={step:'shareProg',snap:snap,report:report||null,steps:steps,i:0,pct:0};
  renderModal();
  shareImportTick();
 }
@@ -510,7 +581,7 @@ function shareImportTick(){
   ui.archId=null;ui.scan=null;ui.moveFrom=null;ui.selPos=null;ui.pool=null;ui.attrOpen=false;ui.newReg={};ui.gsel.clear();ui.moveSel=new Set();
   IDENT_BASE.clear();
   Object.values(M).filter(m=>m.fa&&m.mo&&m.geno&&m.geno!=='待鉴定'&&m.geno!=='无效').forEach(m=>IDENT_BASE.add(m.id));
-  OPLOG.unshift({t:NOWT,text:'导入分享码快照（鼠 '+Object.keys(M).length+' 只 · 终态 '+DEATHS.length+' 条 · 待办 '+activeTodos().length+' 未完成） · '+ui.user});
+  OPLOG.unshift({t:NOWT,text:'导入分享码快照（鼠 '+Object.keys(M).length+' 只 · 终态 '+DEATHS.length+' 条 · 待办 '+activeTodos().length+' 未完成'+(w.report&&w.report.warns.length?' · 校验提醒 '+w.report.warns.length+' 项':'')+'） · '+ui.user});
   ui.wiz={step:'shareDone',snapAt:w.snap.at||'',snapV:w.snap.v};
   renderModal();render();toast('✓ 快照已导入 · 全部页面已切换到导入数据');
   return;
@@ -1204,10 +1275,30 @@ function renderModal(){
      +'<button class="btn block" style="margin-top:8px;" onclick="shareCopy()">复制分享码</button>'
      :'');
   }else{
-   h+='<div class="b-amber banner">⚠ 加载分享码将<b>完全覆盖</b>当前所有数据。导入前会自动生成当前数据的备份码，请留意确认框内容。</div>'
+   h+='<div class="b-amber banner">⚠ 加载分享码将<b>完全覆盖</b>当前所有数据。粘贴后先进行<b>数据校验</b>，核对快照内容无误再确认导入；确认页提供当前数据备份码。</div>'
    +'<textarea id="shareIn" placeholder="粘贴分享码…" style="width:100%;height:150px;font-size:11px;font-family:var(--mono);word-break:break-all;"></textarea>'
-   +'<button class="btn primary block" style="margin-top:8px;" onclick="shareImport()">加载分享码</button>';
+   +'<button class="btn primary block" style="margin-top:8px;" onclick="shareImport()">校验并加载分享码</button>';
   }
+ }
+ if(w.step==='shareCheck'){
+  const rp=w.report;
+  const vMsg=w.snap.v===SHARE_VER?'v'+w.snap.v+'（与当前一致）':'v'+w.snap.v+'（低于当前 v'+SHARE_VER+'，将按兼容模式导入）';
+  h+='<div class="b-blue banner">数据校验完成，请核对快照内容与校验结果后再导入。</div>'
+  +'<div class="kv">'
+  +'<span class="k">数据版本</span><div>'+vMsg+'</div>'
+  +(w.snap.at?'<span class="k">快照生成时间</span><div>'+esc(w.snap.at)+'</div>':'')
+  +'<span class="k">来源应用</span><div>'+esc(w.snap.app||'未知')+'</div>'
+  +(rp.counts?'<span class="k">数据量</span><div>鼠 '+rp.counts.mice+' 只 · 笼位 '+rp.counts.cages+' 个（繁殖笼 '+rp.counts.bc+'）· 终态 '+rp.counts.deaths+' 条（待归因 '+rp.counts.pend+'）· 待办 '+rp.counts.todos+' 未完成 · 计划 '+rp.counts.plans+' 个 · 送检批 '+rp.counts.batches+' 批 · 操作人 '+rp.counts.users+' 位</div>':'')
+  +'</div>';
+  if(rp.fatals.length)h+='<div class="b-red banner">⛔ 存在阻断性问题，禁止导入：<br>'+rp.fatals.map(x=>'· '+esc(x)).join('<br>')+'</div>';
+  if(rp.warns.length)h+='<div class="b-amber banner">⚠ 校验发现 '+rp.warns.length+' 项提醒（不阻断导入，请知悉）：<br>'+rp.warns.map(x=>'· '+esc(x)).join('<br>')+'</div>';
+  if(!rp.fatals.length&&!rp.warns.length)h+='<div class="b-ok banner">✓ 校验全部通过，未发现异常</div>';
+  h+='<div class="smaller mut" style="margin:8px 0 4px;">导入将完全覆盖当前数据。以下为当前数据备份码（建议先复制保存）：</div>'
+  +'<textarea id="shareBackup" readonly style="width:100%;height:70px;font-size:11px;font-family:var(--mono);word-break:break-all;">'+w.backup+'</textarea>'
+  +'<button class="btn block" style="margin-top:6px;" onclick="shareBackupCopy()">复制备份码</button>'
+  +(rp.fatals.length
+    ?'<button class="btn block" style="margin-top:10px;" onclick="shareBackIn()">返回重新粘贴</button>'
+    :'<button class="btn primary block" style="margin-top:10px;" onclick="shareImportGo()">确认导入（覆盖当前数据）</button><button class="btn block" style="margin-top:6px;" onclick="shareBackIn()">返回重新粘贴</button>');
  }
  if(w.step==='shareProg'){
   h+='<div class="b-blue banner">正在导入分享码快照，请勿关闭或刷新页面…</div>'
@@ -1807,10 +1898,25 @@ function hwCard(title,n,he,wt,kind,banner){
  +(banner?'<div class="banner b-amber">'+banner+'</div>':'')+'</div>';
 }
 
-/* ================= 启动 ================= */
-loadData(); // 启动时先恢复上次保存的数据，再渲染
-render();
-document.querySelector('.side a').classList.add('on');
+/* ================= 启动 =================
+   启动时优先从 IndexedDB 数据库恢复；数据库为空（首次使用 / 旧版本升级）时
+   回退 localStorage，并在成功后把数据迁移进数据库，之后统一走数据库读写 */
+async function boot(){
+ let restored=false;
+ try{
+  const raw=await dbLoad();
+  if(raw){applySnapshot(JSON.parse(raw));restored=true;}
+ }catch(e){/* 数据库不可用或数据损坏时走回退 */}
+ if(!restored){
+  try{
+   const raw=localStorage.getItem(LS_KEY);
+   if(raw){applySnapshot(JSON.parse(raw));restored=true;dbSave(raw);} // 旧数据迁移入库
+  }catch(e){/* 数据损坏时忽略，从空状态启动 */}
+ }
+ render();
+ const firstNav=document.querySelector('.side a');if(firstNav)firstNav.classList.add('on');
+}
+boot();
 </script>
 <script>
 /* PWA：注册 Service Worker。iframe 内嵌场景（如 IDE 预览面板）跳过注册，避免拦截请求导致 ERR_ABORTED */
